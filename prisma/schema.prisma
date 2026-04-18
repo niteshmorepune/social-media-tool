@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  TEAM
+  CLIENT
+}
+
+enum ContentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+enum ContentType {
+  IMAGE
+  VIDEO
+  CAROUSEL
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(TEAM)
+  // For CLIENT role: links this login to their client record
+  clientId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client        Client?        @relation("ClientUsers", fields: [clientId], references: [id], onDelete: SetNull)
+  briefs        Brief[]        @relation("BriefCreatedBy")
+  revisions     Revision[]
+  notifications Notification[]
+
+  @@index([email])
+  @@index([clientId])
+}
+
+model Client {
+  id             String   @id @default(uuid())
+  name           String
+  industry       String
+  brandTone      String   @db.Text
+  targetAudience String   @db.Text
+  logoUrl        String?
+  website        String?
+  primaryColor   String?  @default("#3B82F6")
+  // Team member assigned to manage this client
+  assignedToId   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users  User[]  @relation("ClientUsers")
+  briefs Brief[]
+
+  @@index([name])
+}
+
+model Brief {
+  id                  String   @id @default(uuid())
+  clientId            String
+  title               String
+  contentGoal         String
+  campaignDescription String   @db.Text
+  specialInstructions String?  @db.Text
+  // Month this content is planned for (stored as first day of that month)
+  scheduledMonth      DateTime
+  createdById         String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  client    Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy User            @relation("BriefCreatedBy", fields: [createdById], references: [id])
+  platforms BriefPlatform[]
+  content   Content[]
+
+  @@index([clientId])
+  @@index([scheduledMonth])
+}
+
+// One row per platform+contentType combo selected in the brief
+model BriefPlatform {
+  id          String      @id @default(uuid())
+  briefId     String
+  platform    String      // "Instagram" | "Facebook" | "LinkedIn" | "Twitter" | "TikTok" | "Google Business"
+  contentType ContentType
+
+  brief   Brief     @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  content Content[]
+
+  @@index([briefId])
+}
+
+model Content {
+  id              String        @id @default(uuid())
+  briefId         String
+  briefPlatformId String
+  platform        String
+  contentType     ContentType
+  status          ContentStatus @default(PENDING)
+  scheduledDate   DateTime?
+
+  // ── Common fields ──────────────────────────────────
+  caption      String? @db.Text
+  copy         String? @db.Text
+  hashtags     String? @db.Text
+  callToAction String? @db.Text
+
+  // ── Image & Carousel ───────────────────────────────
+  imagePrompt String? @db.Text
+  // Carousel slides stored as JSON: [{slideNumber, text, imagePrompt}]
+  slides      Json?
+
+  // ── Video ──────────────────────────────────────────
+  hook            String? @db.Text // First 3 seconds
+  script          String? @db.Text // Full spoken script
+  onScreenText    String? @db.Text // Text overlay suggestions
+  videoConcept    String? @db.Text // Overall video idea/treatment
+  duration        String? // e.g. "30 seconds", "60 seconds"
+  thumbnailPrompt String? @db.Text
+
+  // ── Generated media ────────────────────────────────
+  // Stores Cloudinary CDN URLs after generation
+  imageUrl     String? @db.Text // IMAGE: generated image
+  videoUrl     String? @db.Text // VIDEO: generated video
+  thumbnailUrl String? @db.Text // VIDEO: first-frame thumbnail
+  // mediaStatus: NONE | GENERATING | READY | FAILED
+  mediaStatus  String  @default("NONE")
+  mediaJobId   String? // RunwayML task ID for async polling
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brief         Brief         @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  briefPlatform BriefPlatform @relation(fields: [briefPlatformId], references: [id])
+  revisions     Revision[]
+
+  @@index([briefId])
+  @@index([status])
+  @@index([platform])
+}
+
+model Revision {
+  id            String   @id @default(uuid())
+  contentId     String
+  requestedById String
+  comment       String   @db.Text
+  createdAt     DateTime @default(now())
+
+  content     Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  requestedBy User    @relation(fields: [requestedById], references: [id])
+
+  @@index([contentId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // "CONTENT_READY" | "APPROVED" | "REJECTED" | "REVISION_REQUESTED"
+  title     String
+  message   String   @db.Text
+  link      String?  // deep-link to the relevant content
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}

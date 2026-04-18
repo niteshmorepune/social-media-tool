@@ -1,0 +1,61 @@
+services:
+  app:
+    build: .
+    restart: always
+    environment:
+      - DATABASE_URL=mysql://smt_user:${MYSQL_PASSWORD}@db:3306/social_media_tool
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=https://socialmediadost.com
+      - AUTH_TRUST_HOST=true
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+      - RUNWAYML_API_SECRET=${RUNWAYML_API_SECRET}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+      - root_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.social-media-tool.rule=Host(`socialmediadost.com`) || Host(`www.socialmediadost.com`)"
+      - "traefik.http.routers.social-media-tool.entrypoints=web,websecure"
+      - "traefik.http.routers.social-media-tool.tls=true"
+      - "traefik.http.routers.social-media-tool.tls.certresolver=myhttpchallenge"
+      - "traefik.http.services.social-media-tool.loadbalancer.server.port=3000"
+      - "traefik.docker.network=root_default"
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: social_media_tool
+      MYSQL_USER: smt_user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+      interval: 5s
+
+networks:
+  internal:
+    driver: bridge
+  root_default:
+    external: true
+
+volumes:
+  mysql_data:
