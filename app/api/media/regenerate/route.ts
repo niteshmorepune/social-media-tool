@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     }
 
     if (content.contentType === 'CAROUSEL' && content.slides) {
-      const rawSlides = content.slides as SlideInput[]
+      const rawSlides = content.slides as unknown as SlideInput[]
       const slidesWithImages = await generateCarouselImages(rawSlides, content.platform)
       await prisma.content.update({
         where: { id: contentId },
