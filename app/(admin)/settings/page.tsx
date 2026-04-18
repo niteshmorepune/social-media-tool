@@ -1,11 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
 
 export default function SettingsPage() {
-  const { data: session, update } = useSession()
-
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [profileLoading, setProfileLoading] = useState(false)
@@ -20,11 +17,10 @@ export default function SettingsPage() {
   const [pwSuccess, setPwSuccess] = useState(false)
 
   useEffect(() => {
-    if (session?.user) {
-      setName(session.user.name ?? '')
-      setEmail(session.user.email ?? '')
-    }
-  }, [session])
+    fetch('/api/settings/profile')
+      .then(r => r.json())
+      .then(d => { if (d.name) setName(d.name); if (d.email) setEmail(d.email) })
+  }, [])
 
   async function handleProfile(e: React.FormEvent) {
     e.preventDefault()
@@ -40,7 +36,6 @@ export default function SettingsPage() {
       const data = await res.json()
       if (!res.ok) { setProfileError(data.error ?? 'Something went wrong'); return }
       setProfileSuccess(true)
-      await update({ name, email })
     } finally {
       setProfileLoading(false)
     }
