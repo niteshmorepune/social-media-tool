@@ -2,7 +2,7 @@
 // Orchestrates: Replicate (image) → Cloudinary (storage) → RunwayML (video)
 
 import replicate from './replicate-client'
-import runway from './runway-client'
+import getRunway from './runway-client'
 import { uploadFromUrl } from './cloudinary-client'
 
 // ── Aspect ratios ─────────────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ export async function generateThumbnailAndStartVideo(
   ].join(' ')
   const promptText = rawPrompt.length > 1000 ? rawPrompt.slice(0, 997) + '...' : rawPrompt
 
-  const task = await runway.imageToVideo.create({
+  const task = await getRunway().imageToVideo.create({
     model:       'gen3a_turbo',
     promptImage: thumbnailUrl,
     promptText,

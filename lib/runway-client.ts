@@ -1,8 +1,12 @@
 import RunwayML from '@runwayml/sdk'
 
-// Server-only — never import in client components
-const runway = new RunwayML({
-  apiKey: process.env.RUNWAYML_API_SECRET!,
-})
+let _runway: RunwayML | null = null
 
-export default runway
+function getRunway(): RunwayML {
+  if (!_runway) {
+    _runway = new RunwayML({ apiKey: process.env.RUNWAYML_API_SECRET! })
+  }
+  return _runway
+}
+
+export default getRunway
