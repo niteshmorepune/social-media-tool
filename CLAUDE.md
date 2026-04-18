@@ -35,7 +35,7 @@ npm run db:seed        # seed admin user: admin@yourdomain.com / admin123
 
 **Local dev:** Prisma CLI reads `.env`, Next.js reads `.env.local`. Keep `DATABASE_URL` in `.env` for Prisma commands.
 
-**Local DB:** `DATABASE_URL="mysql://root:@localhost:3306/social_media_tool"`
+**Local DB:** MySQL on localhost, DB name `social_media_tool`, no password for root (standard XAMPP/local setup).
 
 ## Architecture
 
