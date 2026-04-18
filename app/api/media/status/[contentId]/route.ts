@@ -1,6 +1,6 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import runway from '@/lib/runway-client'
+import getRunway from '@/lib/runway-client'
 import { uploadFromUrl } from '@/lib/cloudinary-client'
 import { NextResponse } from 'next/server'
 
@@ -43,7 +43,7 @@ export async function GET(
 
   // Check RunwayML task status
   try {
-    const task = await runway.tasks.retrieve(content.mediaJobId)
+    const task = await getRunway().tasks.retrieve(content.mediaJobId)
 
     if (task.status === 'SUCCEEDED' && task.output && task.output.length > 0) {
       // Upload to Cloudinary for permanent storage
