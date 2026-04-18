@@ -86,7 +86,7 @@ export default function Sidebar({ role, userName }: Props) {
           className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
         >
           <SettingsIcon className="w-4 h-4 shrink-0 text-gray-400" />
-          Change Password
+          Settings
         </Link>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
