@@ -69,13 +69,16 @@ User → Notification
 2. Saves text fields to `Content` immediately
 3. Triggers media pipeline by `contentType`:
    - **IMAGE**: Replicate `flux-1.1-pro` → Cloudinary → `imageUrl`, `mediaStatus=READY`
-   - **VIDEO**: Replicate thumbnail → Cloudinary → RunwayML `gen3a_turbo` (async) → `mediaJobId`, `mediaStatus=GENERATING`. `VideoStatusPoller` polls `GET /api/media/status/[contentId]` every 6s until RunwayML SUCCEEDED → uploads video to Cloudinary
+   - **VIDEO**: Replicate thumbnail → Cloudinary → RunwayML `gen3a_turbo` (async, **10s clip**, silent) → `mediaJobId`, `mediaStatus=GENERATING`. `VideoStatusPoller` polls `GET /api/media/status/[contentId]` every 6s until RunwayML SUCCEEDED → uploads video to Cloudinary
    - **CAROUSEL**: Replicate generates one image per slide sequentially (rate limit avoidance)
+
+**Retry media (`POST /api/media/regenerate`)** — non-blocking: marks `GENERATING` and returns immediately; pipeline runs as a fire-and-forget async function in the Node.js process. `GeneratingPoller` component on the approvals page auto-refreshes every 5s while any IMAGE/CAROUSEL is `GENERATING`.
 
 ### Known SDK / API Quirks
 
 - **Replicate SDK v1.x** — `replicate.run()` returns a `FileOutput` object, not `string[]`. `lib/media-generation.ts` normalises: checks `typeof`, `Array.isArray`, falls back to `.url().toString()`
-- **RunwayML `gen3a_turbo`** — hard 1000-char limit on `promptText`; `generateThumbnailAndStartVideo()` truncates to 997 + `'...'`
+- **Replicate 429 rate limit** — `runReplicate()` wrapper in `lib/media-generation.ts` retries up to 5 times, honouring `retry-after` header with a minimum growing backoff (3s, 6s, 9s…)
+- **RunwayML `gen3a_turbo`** — hard 1000-char limit on `promptText`; `generateThumbnailAndStartVideo()` truncates to 997 + `'...'`. Max clip duration is **10 seconds** (hardcoded); generates silent video only — no audio
 - **`BriefForm.tsx` month picker** — `type="month"` stores `YYYY-MM` in state; `-01` suffix appended only at submit, never in `onChange`
 - **Runway/Replicate clients are lazy getters** — `lib/runway-client.ts` exports `getRunway()` (not a singleton instance) because Next.js evaluates module-level code at build time when collecting page data, which throws if env vars are absent
 
@@ -94,7 +97,8 @@ User → Notification
 - `lib/runway-client.ts` — Lazy RunwayML getter `getRunway()`, server-only
 - `lib/replicate-client.ts` — Replicate singleton, server-only
 - `lib/cloudinary-client.ts` — Cloudinary config + `uploadFromUrl()`, server-only
-- `lib/media-generation.ts` — Full media pipeline orchestration
+- `lib/media-generation.ts` — Full media pipeline orchestration; `runReplicate()` wrapper handles 429 retries
+- `components/GeneratingPoller.tsx` — Client component; polls `router.refresh()` every 5s when IMAGE/CAROUSEL is GENERATING
 - `lib/utils.ts` — `PLATFORMS`, `CONTENT_GOALS`, `CAPTION_LIMITS`, `VIDEO_DURATIONS` + UI helpers
 - `prisma/schema.prisma` — Source of truth; no migrations, use `db:push`
 - `types/next-auth.d.ts` — Extends Session with `id`, `role`, `clientId`
@@ -105,7 +109,7 @@ User → Notification
 POST   /api/generate                    # single BriefPlatform generation
 POST   /api/generate/bulk               # all BriefPlatforms in a brief
 GET    /api/media/status/[contentId]    # poll RunwayML; uploads to Cloudinary on SUCCEEDED
-POST   /api/media/regenerate            # retry media pipeline only (uses saved prompts, no Claude re-run)
+POST   /api/media/regenerate            # retry media pipeline only (non-blocking: returns GENERATING immediately, runs pipeline in background)
 GET/POST        /api/briefs
 GET/PUT/DELETE  /api/briefs/[id]
 GET/POST        /api/clients
@@ -117,6 +121,11 @@ GET/POST /api/team                      # ADMIN only
 PATCH  /api/settings/password           # change own password
 GET/PATCH /api/settings/profile         # get or update own name/email
 ```
+
+### UI / Naming Notes
+
+- **Brief form** — the `campaignDescription` DB field is labelled **"Content Brief"** in the UI (renamed from "Campaign Description" to avoid confusion). Section heading is "Brief Details" (was "Campaign Details").
+- **Help & Guide page** — `app/(admin)/help/page.tsx`, accessible to all ADMIN + TEAM roles at `/help`. Covers full workflow: clients → briefs → generate → approvals → portal → calendar → export → team.
 
 ### Hydration Warnings
 
@@ -161,4 +170,6 @@ docker compose exec app npx prisma db push
 ### Docker build notes
 - `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_APP_NAME` are hardcoded in `Dockerfile` as `ENV` (baked at build time)
 - `package-lock.json` is deleted before `npm install` in Docker — Windows lock file omits `linux-x64-musl` optional binaries (lightningcss, etc.)
+- Container start command is `npx next start` (not `node server.js` — standalone output is not enabled)
+- If VPS branch diverges from GitHub: `git fetch origin && git reset --hard origin/master` then rebuild
 - If Traefik fails ACME with 500 and a stale IP: clear the `socialmediadost.com` entry from `acme.json` in `traefik_data` volume and restart Traefik
