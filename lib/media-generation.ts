@@ -30,6 +30,35 @@ function getRunwayRatio(platform: string): '768:1280' | '1280:768' {
   return '1280:768' // 16:9 landscape
 }
 
+// ── Replicate call with 429 retry/backoff ─────────────────────────────────────
+
+async function runReplicate(
+  model: Parameters<typeof replicate.run>[0],
+  options: Parameters<typeof replicate.run>[1],
+  maxRetries = 5
+): Promise<unknown> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await replicate.run(model, options)
+    } catch (err: unknown) {
+      const response = (err as Record<string, unknown>)?.response as Response | undefined
+      if (response?.status === 429 && attempt < maxRetries) {
+        const retryAfter = response.headers.get('retry-after')
+        // Honour retry-after but apply a minimum backoff that grows each attempt
+        const waitMs = Math.max(
+          retryAfter ? parseInt(retryAfter) * 1000 : 0,
+          (attempt + 1) * 3000   // 3s, 6s, 9s, 12s, 15s
+        )
+        console.log(`Replicate 429 — waiting ${waitMs}ms (attempt ${attempt + 1}/${maxRetries})`)
+        await new Promise(r => setTimeout(r, waitMs))
+        continue
+      }
+      throw err
+    }
+  }
+  throw new Error('Replicate: max retries exceeded')
+}
+
 // ── Image generation (Replicate Flux-1.1-pro → Cloudinary) ───────────────────
 
 export async function generateImage(
@@ -39,7 +68,7 @@ export async function generateImage(
 ): Promise<string> {
   const aspectRatio = getFluxAspectRatio(platform, contentType)
 
-  const output = await replicate.run('black-forest-labs/flux-1.1-pro', {
+  const output = await runReplicate('black-forest-labs/flux-1.1-pro', {
     input: {
       prompt,
       aspect_ratio:      aspectRatio,
