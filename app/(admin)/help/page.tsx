@@ -50,7 +50,7 @@ export default function HelpPage() {
         <SectionCard id="briefs" icon="Briefs" title="Briefs">
           <p>A <strong>Brief</strong> defines what content to create for a client in a given month. You pick the platforms, content types, and goals once — then generate everything from it.</p>
           <Step n={1} text='Go to Briefs then "New Brief". Select the client and the scheduled month.' />
-          <Step n={2} text="Add one or more platform rows. Each row is a combination of: Platform (e.g. Instagram) + Content Type (Image / Video / Carousel) + Goal (e.g. Brand Awareness) + number of posts." />
+          <Step n={2} text="Select platform and content type combinations using the toggle buttons — e.g. Instagram Image, LinkedIn Video. Each combination you select generates one separate content item." />
           <Step n={3} text="Write the Content Brief — what the posts should be about this month, key messages, tone, and any offers to highlight. This is the main prompt context for Claude." />
           <Step n={4} text='Save the brief. It will appear in the Briefs list with status "Draft".' />
           <Note text="Each platform row in a brief becomes an independent content item that can be generated, regenerated, and approved separately." />
