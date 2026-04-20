@@ -118,7 +118,7 @@ export async function generateThumbnailAndStartVideo(
     model:       'gen3a_turbo',
     promptImage: thumbnailUrl,
     promptText,
-    duration:    5,
+    duration:    10,
     ratio:       getRunwayRatio(platform),
   })
 

@@ -58,7 +58,7 @@ export default function HelpPage() {
             <p className="font-medium text-gray-900 mb-2">Content Types explained</p>
             <div className="space-y-2">
               <ContentTypeRow label="Image" desc="Single static image with caption. Generated via Flux-1.1-pro." />
-              <ContentTypeRow label="Video" desc="Short-form video clip. Thumbnail generated first, then RunwayML renders the video (takes ~2 min)." />
+              <ContentTypeRow label="Video" desc="AI generates a 10-second silent visual clip (RunwayML Gen-3 Turbo maximum). The script and duration field guide Claude on concept and pacing for the full video — a human editor assembles the final cut. No voiceover is added automatically." />
               <ContentTypeRow label="Carousel" desc="Multi-slide post. Each slide gets its own image — generation takes longer." />
             </div>
           </div>
@@ -71,7 +71,7 @@ export default function HelpPage() {
           <Step n={2} text='Click "Generate" on a single platform row, or use "Generate All" on a brief to kick off all rows at once.' />
           <Step n={3} text="Claude writes the caption and visual prompt. Then the media pipeline runs automatically — image/video appears once ready." />
           <Step n={4} text="Review the result. If the caption or image is not right, hit Regenerate to try again (this replaces the existing content)." />
-          <Note text="Video generation (RunwayML) runs asynchronously and may take 1-3 minutes. The status indicator updates automatically — you do not need to refresh the page." />
+          <Note text="Video generation (RunwayML) runs asynchronously and may take 1-3 minutes. The status indicator updates automatically — you do not need to refresh the page. The AI clip is always 10 seconds (RunwayML maximum). The script/duration guides concept and pacing for the full edit — voiceover and assembly are done outside this tool." />
           <Tip text="If a media job fails (red indicator), use the Retry Media button to re-run only the media pipeline without re-generating text and prompts." />
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Media status indicators</p>
