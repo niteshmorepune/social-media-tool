@@ -5,6 +5,7 @@ import ApprovalActions from '@/components/ApprovalActions'
 import MediaDisplay from '@/components/MediaDisplay'
 import RegenerateMediaButton from '@/components/RegenerateMediaButton'
 import ScheduleDatePicker from '@/components/ScheduleDatePicker'
+import GeneratingPoller from '@/components/GeneratingPoller'
 
 export default async function ApprovalsPage({
   searchParams
@@ -49,8 +50,13 @@ export default async function ApprovalsPage({
 
   const activeFilter = filterStatus ?? 'ALL'
 
+  const hasGeneratingNonVideo = contentList.some(
+    c => c.mediaStatus === 'GENERATING' && c.contentType !== 'VIDEO'
+  )
+
   return (
     <div>
+      <GeneratingPoller active={hasGeneratingNonVideo} />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Approvals</h1>
         <p className="text-sm text-gray-500 mt-0.5">Review, approve, or send content to clients.</p>
