@@ -14,7 +14,7 @@ export default async function NewBriefPage() {
     <div className="max-w-2xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Create Brief</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Define the campaign and select platforms.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Define the content brief and select platforms.</p>
       </div>
       <BriefForm clients={clients} />
     </div>

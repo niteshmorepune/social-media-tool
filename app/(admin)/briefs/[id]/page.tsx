@@ -49,7 +49,7 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
           <p className="text-sm text-gray-800">{brief.contentGoal}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Campaign Description</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Content Brief</p>
           <p className="text-sm text-gray-800 whitespace-pre-line">{brief.campaignDescription}</p>
         </div>
         {brief.specialInstructions && (

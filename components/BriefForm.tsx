@@ -73,7 +73,7 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Basic info */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900">Campaign Details</h2>
+        <h2 className="font-semibold text-gray-900">Brief Details</h2>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Client *</label>
@@ -117,11 +117,12 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Campaign Description *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Content Brief *</label>
+          <p className="text-xs text-gray-400 mb-1.5">What should the posts be about this month? Include key messages, tone, offers, or anything to highlight.</p>
           <textarea
             required rows={4} value={form.campaignDescription} onChange={e => set('campaignDescription', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-            placeholder="Describe the campaign, key messages, offers, or themes the AI should focus on..."
+            placeholder="e.g. This month focus on our new web design packages. Highlight fast turnaround, affordable pricing, and include a call to action to book a free consultation. Keep the tone friendly and professional."
           />
         </div>
 
