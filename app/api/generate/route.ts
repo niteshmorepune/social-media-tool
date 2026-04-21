@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { briefPlatformId } = await req.json()
+  const { briefPlatformId, skipMedia = false } = await req.json()
 
   const briefPlatform = await prisma.briefPlatform.findUnique({
     where: { id: briefPlatformId },
@@ -162,7 +162,7 @@ For image/video prompts, write rich, detailed descriptions suitable for AI gener
       platform,
       contentType,
       status:          'PENDING',
-      mediaStatus:     'GENERATING',
+      mediaStatus:     skipMedia ? 'NONE' : 'GENERATING',
       caption:         generated.caption as string,
       copy:            (generated.copy as string)         ?? null,
       hashtags:        generated.hashtags as string,
@@ -179,6 +179,10 @@ For image/video prompts, write rich, detailed descriptions suitable for AI gener
   })
 
   // ── Generate actual media ─────────────────────────────────────────────────
+  if (skipMedia) {
+    return NextResponse.json({ ...content, mediaStatus: 'NONE' }, { status: 201 })
+  }
+
   try {
     if (contentType === 'IMAGE' && generated.imagePrompt) {
       const imageUrl = await generateImage(generated.imagePrompt as string, platform, 'IMAGE')
