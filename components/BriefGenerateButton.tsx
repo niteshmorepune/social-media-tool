@@ -58,8 +58,8 @@ export default function BriefGenerateButton({ briefPlatformId, hasContent, conte
   }
 
   const busy = loading !== null
-  const primaryLabel = loading === 'full'
-    ? 'Generating...'
+  const primaryLabel = busy
+    ? (loading === 'retry-media' ? 'Retrying media...' : 'Generating...')
     : hasContent ? 'Regenerate All' : 'Generate'
 
   const btnBase = 'px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50'
