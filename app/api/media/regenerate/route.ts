@@ -30,10 +30,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No media prompt available — regenerate the full content first' }, { status: 422 })
   }
 
-  // Mark as generating and respond immediately — pipeline runs in background
+  // Mark as generating and respond immediately — pipeline runs in background.
+  // Clear videoUrl for VIDEO so MediaDisplay shows VideoStatusPoller instead of the stale video.
   await prisma.content.update({
     where: { id: contentId },
-    data: { mediaStatus: 'GENERATING', mediaJobId: null },
+    data: {
+      mediaStatus: 'GENERATING',
+      mediaJobId:  null,
+      ...(content.contentType === 'VIDEO' ? { videoUrl: null } : {}),
+    },
   })
 
   // Fire-and-forget: continues after response is sent (Node.js / Docker environment)
