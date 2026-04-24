@@ -15,6 +15,17 @@ export default async function ApprovalsPage({
   const session = await auth()
   const { status: filterStatus } = await searchParams
 
+  // Reset IMAGE/CAROUSEL records stuck in GENERATING (pipeline killed on container restart)
+  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000)
+  await prisma.content.updateMany({
+    where: {
+      mediaStatus: 'GENERATING',
+      contentType: { in: ['IMAGE', 'CAROUSEL'] },
+      updatedAt: { lt: staleThreshold },
+    },
+    data: { mediaStatus: 'FAILED' },
+  })
+
   const where = filterStatus && filterStatus !== 'ALL'
     ? { status: filterStatus as 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED' }
     : {}

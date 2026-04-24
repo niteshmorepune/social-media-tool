@@ -21,6 +21,7 @@ export async function GET(
       mediaJobId:  true,
       videoUrl:    true,
       thumbnailUrl:true,
+      updatedAt:   true,
       brief:       { select: { clientId: true } }
     }
   })
@@ -33,12 +34,22 @@ export async function GET(
   }
 
   // Already resolved — just return current state
-  if (content.mediaStatus !== 'GENERATING' || !content.mediaJobId) {
+  if (content.mediaStatus !== 'GENERATING') {
     return NextResponse.json({
       mediaStatus:  content.mediaStatus,
       videoUrl:     content.videoUrl,
       thumbnailUrl: content.thumbnailUrl,
     })
+  }
+
+  // GENERATING but no job ID yet — pipeline may still be starting (< 5 min) or died on restart
+  if (!content.mediaJobId) {
+    const STALE_MS = 5 * 60 * 1000
+    if (Date.now() - content.updatedAt.getTime() > STALE_MS) {
+      await prisma.content.update({ where: { id: contentId }, data: { mediaStatus: 'FAILED' } })
+      return NextResponse.json({ mediaStatus: 'FAILED', videoUrl: null, thumbnailUrl: content.thumbnailUrl })
+    }
+    return NextResponse.json({ mediaStatus: 'GENERATING', progress: null, videoUrl: null, thumbnailUrl: content.thumbnailUrl })
   }
 
   // Check RunwayML task status
