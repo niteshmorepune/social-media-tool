@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import CalendarView from '@/components/CalendarView'
+import { getEventsForMonth } from '@/lib/events'
 
 export default async function CalendarPage({
   searchParams
@@ -54,6 +55,8 @@ export default async function CalendarPage({
     status: string; caption: string; clientName: string; briefTitle: string
   }[]
 
+  const events = getEventsForMonth(year, month)
+
   return (
     <div>
       <div className="mb-6">
@@ -66,6 +69,7 @@ export default async function CalendarPage({
         items={items}
         clients={clients}
         selectedClient={sp.client ?? ''}
+        events={events}
       />
     </div>
   )

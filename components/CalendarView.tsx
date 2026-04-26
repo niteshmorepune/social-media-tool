@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import type { CalendarEvent } from '@/lib/events'
 
 interface CalItem {
   id: string; day: number; platform: string; contentType: string
@@ -14,15 +15,22 @@ interface Props {
   items: CalItem[]
   clients: Client[]
   selectedClient: string
+  events: Record<number, CalendarEvent[]>
 }
 
 const PLATFORM_COLORS: Record<string, string> = {
-  Instagram:        'bg-pink-100 text-pink-700 border-pink-200',
-  Facebook:         'bg-blue-100 text-blue-700 border-blue-200',
-  LinkedIn:         'bg-sky-100 text-sky-700 border-sky-200',
-  Twitter:          'bg-slate-100 text-slate-700 border-slate-200',
-  TikTok:           'bg-purple-100 text-purple-700 border-purple-200',
-  'Google Business':'bg-green-100 text-green-700 border-green-200',
+  Instagram:         'bg-pink-100 text-pink-700 border-pink-200',
+  Facebook:          'bg-blue-100 text-blue-700 border-blue-200',
+  LinkedIn:          'bg-sky-100 text-sky-700 border-sky-200',
+  Twitter:           'bg-slate-100 text-slate-700 border-slate-200',
+  TikTok:            'bg-purple-100 text-purple-700 border-purple-200',
+  'Google Business': 'bg-green-100 text-green-700 border-green-200',
+}
+
+const EVENT_COLORS: Record<string, string> = {
+  national: 'bg-amber-50 text-amber-700',
+  festival: 'bg-violet-50 text-violet-700',
+  global:   'bg-teal-50 text-teal-700',
 }
 
 const MONTH_NAMES = [
@@ -31,7 +39,7 @@ const MONTH_NAMES = [
 ]
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
-export default function CalendarView({ year, month, items, clients, selectedClient }: Props) {
+export default function CalendarView({ year, month, items, clients, selectedClient, events }: Props) {
   const router = useRouter()
 
   function navigate(dir: number) {
@@ -50,7 +58,7 @@ export default function CalendarView({ year, month, items, clients, selectedClie
   }
 
   const daysInMonth = new Date(year, month, 0).getDate()
-  const firstDow    = new Date(year, month - 1, 1).getDay() // 0=Sun
+  const firstDow    = new Date(year, month - 1, 1).getDay()
   const today       = new Date()
   const isThisMonth = today.getFullYear() === year && today.getMonth() + 1 === month
 
@@ -87,12 +95,10 @@ export default function CalendarView({ year, month, items, clients, selectedClie
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Summary pills */}
           <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">{totalItems} pieces</span>
           <span className="text-xs text-green-700 bg-green-50 px-2.5 py-1 rounded-full">{approved} approved</span>
           <span className="text-xs text-yellow-700 bg-yellow-50 px-2.5 py-1 rounded-full">{pending} pending</span>
 
-          {/* Client filter */}
           <select
             value={selectedClient}
             onChange={e => filterClient(e.target.value)}
@@ -123,10 +129,11 @@ export default function CalendarView({ year, month, items, clients, selectedClie
           ))}
 
           {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day  = i + 1
+            const day      = i + 1
             const dayItems = grouped[day] ?? []
+            const dayEvents = events[day] ?? []
             const isToday  = isThisMonth && today.getDate() === day
-            const col  = (firstDow + i) % 7
+            const col      = (firstDow + i) % 7
             const isLastCol = col === 6
 
             return (
@@ -136,12 +143,26 @@ export default function CalendarView({ year, month, items, clients, selectedClie
                   isToday ? 'bg-blue-50/40' : ''
                 }`}
               >
+                {/* Date number */}
                 <p className={`text-xs font-semibold mb-1 w-5 h-5 flex items-center justify-center rounded-full ${
                   isToday ? 'bg-blue-600 text-white' : 'text-gray-500'
                 }`}>
                   {day}
                 </p>
+
                 <div className="space-y-0.5">
+                  {/* Event badges — shown first */}
+                  {dayEvents.map(ev => (
+                    <div
+                      key={ev.name}
+                      title={ev.name}
+                      className={`text-xs px-1.5 py-0.5 rounded truncate font-medium ${EVENT_COLORS[ev.type]}`}
+                    >
+                      {ev.name}
+                    </div>
+                  ))}
+
+                  {/* Content chips */}
                   {dayItems.slice(0, 3).map(item => (
                     <div
                       key={item.id}
@@ -166,12 +187,25 @@ export default function CalendarView({ year, month, items, clients, selectedClie
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-4">
-        {Object.entries(PLATFORM_COLORS).map(([platform, color]) => (
-          <span key={platform} className={`text-xs px-2 py-0.5 rounded border ${color}`}>
-            {platform}
-          </span>
-        ))}
+      <div className="flex flex-wrap gap-x-6 gap-y-2 mt-4">
+        {/* Platform legend */}
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(PLATFORM_COLORS).map(([platform, color]) => (
+            <span key={platform} className={`text-xs px-2 py-0.5 rounded border ${color}`}>
+              {platform}
+            </span>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div className="w-px bg-gray-200 hidden sm:block" />
+
+        {/* Event type legend */}
+        <div className="flex flex-wrap gap-2">
+          <span className="text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-700">National Holiday</span>
+          <span className="text-xs px-2 py-0.5 rounded bg-violet-50 text-violet-700">Festival</span>
+          <span className="text-xs px-2 py-0.5 rounded bg-teal-50 text-teal-700">Global / Marketing Day</span>
+        </div>
       </div>
     </div>
   )
