@@ -38,7 +38,7 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
               {brief.client.name} · {formatMonth(brief.scheduledMonth)} · Created by {brief.createdBy.name}
             </p>
           </div>
-          <BulkGenerateButton briefId={brief.id} platformCount={brief.platforms.length} />
+          <BulkGenerateButton platforms={brief.platforms.map(p => ({ id: p.id }))} />
         </div>
       </div>
 

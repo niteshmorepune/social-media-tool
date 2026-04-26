@@ -4,16 +4,18 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Props {
-  briefId: string
-  platformCount: number
+  platforms: { id: string }[]
 }
 
-export default function BulkGenerateButton({ briefId, platformCount }: Props) {
+export default function BulkGenerateButton({ platforms }: Props) {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
   const [open, setOpen] = useState(false)
-  const [result, setResult] = useState<{ generated: number; errors: string[] } | null>(null)
+  const [errors, setErrors] = useState<string[]>([])
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const loading = progress !== null
+  const platformCount = platforms.length
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -29,20 +31,29 @@ export default function BulkGenerateButton({ briefId, platformCount }: Props) {
     const label = skipMedia ? 'text content' : 'content and media'
     if (!confirm(`Generate ${label} for all ${platformCount} platform${platformCount > 1 ? 's' : ''}? Any existing content will be replaced.`)) return
 
-    setResult(null)
-    setLoading(true)
+    setErrors([])
     setOpen(false)
+    const errs: string[] = []
 
-    const res = await fetch('/api/generate/bulk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ briefId, skipMedia })
-    })
+    for (let i = 0; i < platforms.length; i++) {
+      setProgress({ current: i + 1, total: platforms.length })
 
-    setLoading(false)
-    const data = await res.json()
-    setResult(data)
-    if (data.generated > 0) router.refresh()
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ briefPlatformId: platforms[i].id, skipMedia }),
+        })
+        if (!res.ok) errs.push(`Platform ${i + 1}: generation failed`)
+      } catch {
+        errs.push(`Platform ${i + 1}: request failed`)
+      }
+
+      router.refresh()
+    }
+
+    setProgress(null)
+    setErrors(errs)
   }
 
   const btnBase = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50'
@@ -58,11 +69,11 @@ export default function BulkGenerateButton({ briefId, platformCount }: Props) {
         >
           {loading ? (
             <>
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Generating text...
+              Generating {progress!.current} of {progress!.total}...
             </>
           ) : (
             <>
@@ -103,14 +114,9 @@ export default function BulkGenerateButton({ briefId, platformCount }: Props) {
         )}
       </div>
 
-      {result && (
+      {errors.length > 0 && (
         <div className="text-right">
-          {result.generated > 0 && (
-            <p className="text-xs text-green-600">{result.generated} generated successfully</p>
-          )}
-          {result.errors.map((e, i) => (
-            <p key={i} className="text-xs text-red-500">{e}</p>
-          ))}
+          {errors.map((e, i) => <p key={i} className="text-xs text-red-500">{e}</p>)}
         </div>
       )}
     </div>
