@@ -15,13 +15,16 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
       createdBy: { select: { name: true } },
       platforms: {
         include: {
-          content: { orderBy: { createdAt: 'desc' }, take: 1 }
+          content: { orderBy: { createdAt: 'asc' } }
         }
       }
     }
   })
 
   if (!brief) notFound()
+
+  const totalPostsPlanned = brief.platforms.reduce((s, p) => s + p.postsCount, 0)
+  const totalPostsDone    = brief.platforms.reduce((s, p) => s + p.content.length, 0)
 
   return (
     <div className="max-w-3xl">
@@ -38,7 +41,13 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
               {brief.client.name} · {formatMonth(brief.scheduledMonth)} · Created by {brief.createdBy.name}
             </p>
           </div>
-          <BulkGenerateButton platforms={brief.platforms.map(p => ({ id: p.id }))} />
+          <BulkGenerateButton
+            platforms={brief.platforms.map(p => ({
+              id:            p.id,
+              postsCount:    p.postsCount,
+              existingCount: p.content.length,
+            }))}
+          />
         </div>
       </div>
 
@@ -61,10 +70,16 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Platform + content status */}
-      <h2 className="font-semibold text-gray-900 mb-3">Platforms & Content</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-gray-900">Platforms & Content</h2>
+        <span className="text-xs text-gray-500">{totalPostsDone} of {totalPostsPlanned} posts generated</span>
+      </div>
+
       <div className="space-y-3">
         {brief.platforms.map(p => {
-          const latestContent = p.content[0]
+          const existingCount = p.content.length
+          const postsCount    = p.postsCount
+
           return (
             <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center justify-between">
@@ -73,36 +88,57 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
                   <p className="text-sm text-gray-500">{p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {latestContent ? (
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${getStatusColor(latestContent.status)}`}>
-                      {getStatusLabel(latestContent.status)}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-gray-400">Not generated</span>
-                  )}
-                  <BriefGenerateButton briefPlatformId={p.id} hasContent={!!latestContent} contentId={latestContent?.id ?? null} mediaStatus={latestContent?.mediaStatus ?? null} />
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    existingCount >= postsCount
+                      ? 'bg-green-50 text-green-700'
+                      : existingCount > 0
+                      ? 'bg-amber-50 text-amber-700'
+                      : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {existingCount}/{postsCount} posts
+                  </span>
+                  <BriefGenerateButton
+                    briefPlatformId={p.id}
+                    postsCount={postsCount}
+                    contentItems={p.content.map(c => ({
+                      id:          c.id,
+                      mediaStatus: c.mediaStatus,
+                      status:      c.status,
+                      caption:     c.caption,
+                    }))}
+                  />
                 </div>
               </div>
 
-              {latestContent && (
+              {p.content.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                  {latestContent.caption && (
-                    <div>
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Caption</p>
-                      <p className="text-sm text-gray-700 line-clamp-2">{latestContent.caption}</p>
+                  {p.content.map((c, i) => (
+                    <div key={c.id} className="flex items-start gap-3">
+                      <span className="text-xs text-gray-400 mt-0.5 w-5 shrink-0">#{i + 1}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${getStatusColor(c.status)}`}>
+                            {getStatusLabel(c.status)}
+                          </span>
+                          {c.mediaStatus !== 'NONE' && (
+                            <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
+                              c.mediaStatus === 'READY'      ? 'bg-green-50 text-green-600' :
+                              c.mediaStatus === 'GENERATING' ? 'bg-blue-50 text-blue-600'  :
+                              c.mediaStatus === 'FAILED'     ? 'bg-red-50 text-red-600'    : ''
+                            }`}>
+                              {c.mediaStatus === 'READY' ? 'Media ready' : c.mediaStatus === 'GENERATING' ? 'Generating media...' : 'Media failed'}
+                            </span>
+                          )}
+                        </div>
+                        {c.caption && (
+                          <p className="text-xs text-gray-500 truncate">{c.caption}</p>
+                        )}
+                      </div>
+                      <Link href={`/approvals?content=${c.id}`} className="text-xs text-blue-600 hover:underline shrink-0">
+                        View →
+                      </Link>
                     </div>
-                  )}
-                  {latestContent.hook && (
-                    <div>
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Hook</p>
-                      <p className="text-sm text-gray-700">{latestContent.hook}</p>
-                    </div>
-                  )}
-                  <div className="pt-1">
-                    <Link href={`/approvals?content=${latestContent.id}`} className="text-xs text-blue-600 hover:underline">
-                      View full content & approve →
-                    </Link>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>

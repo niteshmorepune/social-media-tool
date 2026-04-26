@@ -98,6 +98,7 @@ model BriefPlatform {
   briefId     String
   platform    String      // "Instagram" | "Facebook" | "LinkedIn" | "Twitter" | "TikTok" | "Google Business"
   contentType ContentType
+  postsCount  Int         @default(1) // number of posts to generate for this platform per month
 
   brief   Brief     @relation(fields: [briefId], references: [id], onDelete: Cascade)
   content Content[]

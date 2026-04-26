@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { briefPlatformId, skipMedia = false } = await req.json()
+  const { briefPlatformId, skipMedia = false, addPost = false, postNumber = 1, totalPosts = 1 } = await req.json()
 
   const briefPlatform = await prisma.briefPlatform.findUnique({
     where: { id: briefPlatformId },
@@ -104,13 +104,17 @@ export async function POST(req: Request) {
   const { platform, contentType, brief } = briefPlatform
   const { client } = brief
 
-  // Delete any existing content for this briefPlatform before regenerating
-  await prisma.content.deleteMany({ where: { briefPlatformId } })
+  // Delete existing content unless we're adding a new post alongside existing ones
+  if (!addPost) await prisma.content.deleteMany({ where: { briefPlatformId } })
 
   const systemPrompt = `You are an expert social media copywriter and content strategist.
 You create compelling, on-brand content that resonates with target audiences and drives engagement.
 Always match the brand tone exactly and tailor content to the platform's audience and best practices.
 When writing image/video prompts, be highly descriptive and specific — these will be used to generate actual AI images and videos.`
+
+  const postVarietyNote = totalPosts > 1
+    ? `\nPOST SERIES NOTE: This is post ${postNumber} of ${totalPosts} planned for ${platform} this month. Use a completely distinct angle, hook, and message — vary the format, opening line, and story from the other posts in this series.`
+    : ''
 
   const userPrompt = `Create ${contentType.toLowerCase()} content for ${platform}.
 
@@ -121,7 +125,7 @@ CLIENT BRIEF:
 - Target Audience: ${client.targetAudience}
 - Campaign Goal: ${brief.contentGoal}
 - Campaign Description: ${brief.campaignDescription}
-${brief.specialInstructions ? `- Special Instructions: ${brief.specialInstructions}` : ''}
+${brief.specialInstructions ? `- Special Instructions: ${brief.specialInstructions}` : ''}${postVarietyNote}
 
 Generate high-quality, engaging ${platform} ${contentType.toLowerCase()} content.
 For image/video prompts, write rich, detailed descriptions suitable for AI generation — include visual style, mood, colors, lighting, and composition.`

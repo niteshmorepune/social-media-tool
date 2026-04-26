@@ -44,9 +44,10 @@ export async function POST(req: Request) {
       scheduledMonth: new Date(scheduledMonth),
       createdById: session.user.id,
       platforms: {
-        create: platforms.map((p: { platform: string; contentType: string }) => ({
-          platform: p.platform,
-          contentType: p.contentType
+        create: platforms.map((p: { platform: string; contentType: string; postsCount?: number }) => ({
+          platform:   p.platform,
+          contentType: p.contentType,
+          postsCount: p.postsCount ?? 1
         }))
       }
     },

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PLATFORMS, CONTENT_GOALS } from '@/lib/utils'
 
 interface Client { id: string; name: string; primaryColor: string | null }
-interface PlatformEntry { platform: string; contentType: 'IMAGE' | 'VIDEO' | 'CAROUSEL' }
+interface PlatformEntry { platform: string; contentType: 'IMAGE' | 'VIDEO' | 'CAROUSEL'; postsCount: number }
 
 export default function BriefForm({ clients }: { clients: Client[] }) {
   const router = useRouter()
@@ -30,12 +30,20 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
     setPlatforms(prev => {
       const exists = prev.find(p => p.platform === platform && p.contentType === contentType)
       if (exists) return prev.filter(p => !(p.platform === platform && p.contentType === contentType))
-      return [...prev, { platform, contentType }]
+      return [...prev, { platform, contentType, postsCount: 4 }]
     })
   }
 
   function isSelected(platform: string, contentType: string) {
     return platforms.some(p => p.platform === platform && p.contentType === contentType)
+  }
+
+  function updatePostsCount(platform: string, contentType: string, value: number) {
+    setPlatforms(prev => prev.map(p =>
+      p.platform === platform && p.contentType === contentType
+        ? { ...p, postsCount: Math.max(1, Math.min(30, value)) }
+        : p
+    ))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -139,7 +147,7 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
       {/* Platform + content type selection */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Platforms & Content Types *</h2>
-        <p className="text-sm text-gray-500 mb-4">Select one or more combinations. Each will generate separate AI content.</p>
+        <p className="text-sm text-gray-500 mb-4">Select platform and content type combinations, then set how many posts per month for each.</p>
 
         <div className="space-y-4">
           {PLATFORMS.map(({ value, label, supportsVideo, supportsCarousel }) => (
@@ -171,15 +179,45 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
         </div>
 
         {platforms.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs font-medium text-gray-500 mb-2">Selected ({platforms.length}):</p>
-            <div className="flex flex-wrap gap-1.5">
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <p className="text-xs font-medium text-gray-500 mb-3">Selected ({platforms.length}) — set posts per month:</p>
+            <div className="space-y-2">
               {platforms.map((p, i) => (
-                <span key={i} className="text-xs bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-                  {p.platform} · {p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()}
-                </span>
+                <div key={i} className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2.5">
+                  <span className="text-sm text-blue-800 font-medium">
+                    {p.platform} · {p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-blue-600">Posts/month:</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => updatePostsCount(p.platform, p.contentType, p.postsCount - 1)}
+                        className="w-6 h-6 rounded border border-blue-200 bg-white text-blue-700 text-sm font-bold flex items-center justify-center hover:bg-blue-50 disabled:opacity-40"
+                        disabled={p.postsCount <= 1}
+                      >−</button>
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={p.postsCount}
+                        onChange={e => updatePostsCount(p.platform, p.contentType, parseInt(e.target.value) || 1)}
+                        className="w-10 px-1 py-0.5 text-sm border border-blue-200 rounded text-center bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => updatePostsCount(p.platform, p.contentType, p.postsCount + 1)}
+                        className="w-6 h-6 rounded border border-blue-200 bg-white text-blue-700 text-sm font-bold flex items-center justify-center hover:bg-blue-50 disabled:opacity-40"
+                        disabled={p.postsCount >= 30}
+                      >+</button>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Total posts this month: <span className="font-semibold text-gray-600">{platforms.reduce((s, p) => s + p.postsCount, 0)}</span>
+            </p>
           </div>
         )}
       </div>

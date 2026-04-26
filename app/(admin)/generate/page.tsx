@@ -18,25 +18,24 @@ export default async function GeneratePage({
       client: { select: { name: true, primaryColor: true } },
       platforms: {
         include: {
-          content: { orderBy: { createdAt: 'desc' }, take: 1 }
+          content: { orderBy: { createdAt: 'asc' } }
         }
       }
     }
   })
 
-  // When pending-only, drop platforms that already have content and drop briefs
-  // that have no remaining platforms after filtering.
+  // When pending-only, drop platforms that already have all posts generated
   const visibleBriefs = briefs
     .map(brief => ({
       ...brief,
       platforms: pendingOnly
-        ? brief.platforms.filter(p => p.content.length === 0)
+        ? brief.platforms.filter(p => p.content.length < p.postsCount)
         : brief.platforms
     }))
     .filter(brief => brief.platforms.length > 0)
 
   const totalPending = briefs.reduce(
-    (sum, b) => sum + b.platforms.filter(p => p.content.length === 0).length,
+    (sum, b) => sum + b.platforms.filter(p => p.content.length < p.postsCount).length,
     0
   )
 
@@ -46,7 +45,7 @@ export default async function GeneratePage({
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Generate Content</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Select a brief and generate AI content per platform. Each generates independently.
+            Generate AI content per platform. Text is created first — then choose when to generate media.
           </p>
         </div>
 
@@ -66,7 +65,7 @@ export default async function GeneratePage({
               pendingOnly ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            Not generated
+            Incomplete
             {totalPending > 0 && (
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${
                 pendingOnly ? 'bg-gray-100 text-gray-600' : 'bg-gray-200 text-gray-500'
@@ -82,7 +81,7 @@ export default async function GeneratePage({
         <div className="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center">
           {pendingOnly ? (
             <>
-              <p className="text-gray-500 text-sm">All platforms have been generated.</p>
+              <p className="text-gray-500 text-sm">All platforms are fully generated.</p>
               <Link href="/generate" className="text-blue-600 text-sm font-medium mt-1 inline-block hover:underline">
                 View all
               </Link>
@@ -117,7 +116,11 @@ export default async function GeneratePage({
               {/* Platforms */}
               <div className="divide-y divide-gray-100">
                 {brief.platforms.map(p => {
-                  const content = p.content[0]
+                  const existingCount = p.content.length
+                  const postsCount   = p.postsCount
+                  const latestContent = p.content[existingCount - 1] ?? null
+                  const allDone = existingCount >= postsCount
+
                   return (
                     <div key={p.id} className="px-6 py-4 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4 min-w-0">
@@ -125,18 +128,39 @@ export default async function GeneratePage({
                           <p className="text-sm font-medium text-gray-900">{p.platform}</p>
                           <p className="text-xs text-gray-500">{p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()}</p>
                         </div>
-                        {content && (
-                          <div className="hidden sm:flex items-center gap-3 min-w-0">
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${getStatusColor(content.status)}`}>
-                              {getStatusLabel(content.status)}
-                            </span>
-                            {content.caption && (
-                              <p className="text-xs text-gray-400 truncate max-w-xs">{content.caption}</p>
-                            )}
-                          </div>
-                        )}
+                        <div className="hidden sm:flex items-center gap-3 min-w-0">
+                          {/* Post count badge */}
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                            allDone
+                              ? 'bg-green-50 text-green-700'
+                              : existingCount > 0
+                              ? 'bg-amber-50 text-amber-700'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {existingCount}/{postsCount} posts
+                          </span>
+                          {latestContent && (
+                            <>
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${getStatusColor(latestContent.status)}`}>
+                                {getStatusLabel(latestContent.status)}
+                              </span>
+                              {latestContent.caption && (
+                                <p className="text-xs text-gray-400 truncate max-w-xs">{latestContent.caption}</p>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <BriefGenerateButton briefPlatformId={p.id} hasContent={!!content} contentId={content?.id ?? null} mediaStatus={content?.mediaStatus ?? null} />
+                      <BriefGenerateButton
+                        briefPlatformId={p.id}
+                        postsCount={postsCount}
+                        contentItems={p.content.map(c => ({
+                          id:          c.id,
+                          mediaStatus: c.mediaStatus,
+                          status:      c.status,
+                          caption:     c.caption
+                        }))}
+                      />
                     </div>
                   )
                 })}
