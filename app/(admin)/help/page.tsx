@@ -83,7 +83,7 @@ export default function HelpPage() {
           </div>
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Generate All button (Brief detail page)</p>
-            <p className="text-gray-600">The <strong>Generate All (n)</strong> button on a brief generates text for every platform in one go — no media is started. Once the text is ready, use the individual "Generate Media" buttons per row to generate media only where you are happy with the copy. If you want text and media generated together for all platforms, click the chevron next to the button and choose <strong>Generate All with Media</strong>.</p>
+            <p className="text-gray-600">The <strong>Generate All (n)</strong> button on a brief generates text for every platform in one go — no media is started. Once the text is ready, use the individual &ldquo;Generate Media&rdquo; buttons per row to generate media only where you are happy with the copy. If you want text and media generated together for all platforms, click the chevron next to the button and choose <strong>Generate All with Media</strong>.</p>
           </div>
           <Note text="Video generation (RunwayML) runs asynchronously and may take 1–3 minutes after you click Generate Media. The status updates automatically — no need to refresh. The AI clip is always 10 seconds; voiceover and final assembly are done outside this tool." />
           <Tip text="If a media job fails (red indicator), use Media only from the dropdown to re-run only the media pipeline without re-generating text." />
