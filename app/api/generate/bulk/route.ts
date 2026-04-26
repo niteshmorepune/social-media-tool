@@ -149,7 +149,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { briefId } = await req.json()
+  const { briefId, skipMedia = false } = await req.json()
   if (!briefId) return NextResponse.json({ error: 'briefId required' }, { status: 400 })
 
   const brief = await prisma.brief.findUnique({
@@ -178,7 +178,7 @@ export async function POST(req: Request) {
           platform:        bp.platform,
           contentType:     bp.contentType,
           status:          'PENDING',
-          mediaStatus:     'GENERATING',
+          mediaStatus:     skipMedia ? 'NONE' : 'GENERATING',
           caption:         generated.caption as string,
           copy:            (generated.copy as string)         ?? null,
           hashtags:        generated.hashtags as string,
@@ -194,7 +194,12 @@ export async function POST(req: Request) {
         }
       })
 
-      // Generate media
+      // Generate media (skipped when text-only mode)
+      if (skipMedia) {
+        results.push({ ...content, mediaStatus: 'NONE' })
+        continue
+      }
+
       try {
         if (bp.contentType === 'IMAGE' && generated.imagePrompt) {
           const imageUrl = await generateImage(generated.imagePrompt as string, bp.platform, 'IMAGE')

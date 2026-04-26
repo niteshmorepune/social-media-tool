@@ -26,7 +26,7 @@ export default function HelpPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
             {[
               { step: '1. Setup', desc: 'Create a client, then create a brief for the month.' },
-              { step: '2. Generate', desc: 'Run AI generation to produce captions, images, and videos.' },
+              { step: '2. Generate', desc: 'Generate text content first, review it, then generate images or videos per platform.' },
               { step: '3. Approve', desc: 'Client reviews content in the portal; you action feedback.' },
             ].map(item => (
               <div key={item.step} className="bg-gray-50 rounded-lg p-4 border border-gray-100">
@@ -66,20 +66,34 @@ export default function HelpPage() {
 
         {/* Generate */}
         <SectionCard id="generate" icon="Generate" title="Generating Content">
-          <p>The <strong>Generate</strong> page is where AI creates the actual content from your briefs.</p>
-          <Step n={1} text="Go to Generate. Use the Client and Status filters to find the brief you want to work on." />
-          <Step n={2} text='Click "Generate" on a single platform row, or use "Generate All" on a brief to kick off all rows at once.' />
-          <Step n={3} text="Claude writes the caption and visual prompt. Then the media pipeline runs automatically — image/video appears once ready." />
-          <Step n={4} text="Review the result. If the caption or image is not right, hit Regenerate to try again (this replaces the existing content)." />
-          <Note text="Video generation (RunwayML) runs asynchronously and may take 1-3 minutes. The status indicator updates automatically — you do not need to refresh the page. The AI clip is always 10 seconds (RunwayML maximum). The script/duration guides concept and pacing for the full edit — voiceover and assembly are done outside this tool." />
-          <Tip text="If a media job fails (red indicator), use the Retry Media button to re-run only the media pipeline without re-generating text and prompts." />
+          <p>The <strong>Generate</strong> page is where AI creates the actual content from your briefs. Generation is intentionally split into two steps — text first, then media — so you can review and approve the copy before spending time on image or video generation.</p>
+          <Step n={1} text="Go to Generate. Use the All / Not generated filter to find the brief you want to work on." />
+          <Step n={2} text='Click "Generate" on a platform row — this generates text content only (caption, copy, hashtags, script, etc.). No image or video is created yet.' />
+          <Step n={3} text='Review the text. When you are happy with it, click "Generate Media" on that row to kick off the image or video pipeline.' />
+          <Step n={4} text="If the text is not right, click the chevron (▾) next to the button and choose Regenerate All (replaces text + media) or Content only (replaces text, keeps media decision open)." />
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Button behaviour at a glance</p>
+            <div className="space-y-2">
+              <ContentTypeRow label="Generate" desc="No content yet — generates text only. Media is not started." />
+              <ContentTypeRow label="Generate Media" desc="Text exists, no media — starts the image or video pipeline for that platform." />
+              <ContentTypeRow label="Regenerate All" desc="Replaces existing text and re-runs media generation." />
+              <ContentTypeRow label="Content only" desc="Replaces text only; does not touch media." />
+              <ContentTypeRow label="Media only" desc="Re-runs the media pipeline without changing text (useful after a failure)." />
+            </div>
+          </div>
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Generate All button (Brief detail page)</p>
+            <p className="text-gray-600">The <strong>Generate All (n)</strong> button on a brief generates text for every platform in one go — no media is started. Once the text is ready, use the individual "Generate Media" buttons per row to generate media only where you are happy with the copy. If you want text and media generated together for all platforms, click the chevron next to the button and choose <strong>Generate All with Media</strong>.</p>
+          </div>
+          <Note text="Video generation (RunwayML) runs asynchronously and may take 1–3 minutes after you click Generate Media. The status updates automatically — no need to refresh. The AI clip is always 10 seconds; voiceover and final assembly are done outside this tool." />
+          <Tip text="If a media job fails (red indicator), use Media only from the dropdown to re-run only the media pipeline without re-generating text." />
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Media status indicators</p>
             <div className="space-y-2">
-              <StatusRow label="None" color="bg-gray-100 text-gray-600" desc="No media generated yet." />
+              <StatusRow label="None" color="bg-gray-100 text-gray-600" desc='No media generated yet — "Generate Media" button will appear.' />
               <StatusRow label="Generating" color="bg-blue-100 text-blue-700" desc="Pipeline running — wait for it to complete." />
               <StatusRow label="Ready" color="bg-green-100 text-green-700" desc="Media available for preview and download." />
-              <StatusRow label="Failed" color="bg-red-100 text-red-700" desc="Pipeline error — use Retry Media." />
+              <StatusRow label="Failed" color="bg-red-100 text-red-700" desc='Pipeline error — use "Media only" from the dropdown.' />
             </div>
           </div>
         </SectionCard>
