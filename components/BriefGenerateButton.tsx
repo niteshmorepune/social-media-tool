@@ -29,7 +29,6 @@ export default function BriefGenerateButton({ briefPlatformId, postsCount, conte
   const postsNeeded    = Math.max(0, postsCount - existingCount)
   const mediaNoneItems = contentItems.filter(c => c.mediaStatus === 'NONE')
   const needsMedia     = postsNeeded === 0 && mediaNoneItems.length > 0
-  const isComplete     = postsNeeded === 0 && mediaNoneItems.length === 0
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
