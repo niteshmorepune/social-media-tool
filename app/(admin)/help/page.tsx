@@ -50,10 +50,10 @@ export default function HelpPage() {
         <SectionCard id="briefs" icon="Briefs" title="Briefs">
           <p>A <strong>Brief</strong> defines what content to create for a client in a given month. You pick the platforms, content types, and goals once — then generate everything from it.</p>
           <Step n={1} text='Go to Briefs then "New Brief". Select the client and the scheduled month.' />
-          <Step n={2} text="Select platform and content type combinations using the toggle buttons — e.g. Instagram Image, LinkedIn Video. Each combination you select generates one separate content item." />
+          <Step n={2} text="Select platform and content type combinations using the toggle buttons — e.g. Instagram Image, LinkedIn Video. Each platform you enable defaults to 4 posts for the month. Use the − / + buttons or type a number to set how many posts you need per platform." />
           <Step n={3} text="Write the Content Brief — what the posts should be about this month, key messages, tone, and any offers to highlight. This is the main prompt context for Claude." />
           <Step n={4} text='Save the brief. It will appear in the Briefs list with status "Draft".' />
-          <Note text="Each platform row in a brief becomes an independent content item that can be generated, regenerated, and approved separately." />
+          <Note text="Each platform row tracks its own post count. All posts for a platform are generated from the same brief but Claude uses a different angle, hook, and message for each — so a brief set to 8 Instagram posts will produce 8 distinct captions." />
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Content Types explained</p>
             <div className="space-y-2">
@@ -67,23 +67,24 @@ export default function HelpPage() {
         {/* Generate */}
         <SectionCard id="generate" icon="Generate" title="Generating Content">
           <p>The <strong>Generate</strong> page is where AI creates the actual content from your briefs. Generation is intentionally split into two steps — text first, then media — so you can review and approve the copy before spending time on image or video generation.</p>
-          <Step n={1} text="Go to Generate. Use the All / Not generated filter to find the brief you want to work on." />
-          <Step n={2} text='Click "Generate" on a platform row — this generates text content only (caption, copy, hashtags, script, etc.). No image or video is created yet.' />
-          <Step n={3} text='Review the text. When you are happy with it, click "Generate Media" on that row to kick off the image or video pipeline.' />
-          <Step n={4} text="If the text is not right, click the chevron (▾) next to the button and choose Regenerate All (replaces text + media) or Content only (replaces text, keeps media decision open)." />
+          <Step n={1} text="Go to Generate. Use the All / Incomplete filter to find platforms that still need content." />
+          <Step n={2} text='Click the primary button on a platform row — this generates text-only posts (caption, copy, hashtags, script, etc.). No image or video is created yet. Each row shows an X/N badge tracking how many of the planned posts have been generated.' />
+          <Step n={3} text='Review the text. When you are happy, click "Generate Media" on that row to kick off the image or video pipeline for all posts that are missing media.' />
+          <Step n={4} text="If the text is not right, click the chevron (▾) next to the button and choose Regenerate All (replaces all posts + media) or Content only (replaces all text, keeps media decision open)." />
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Button behaviour at a glance</p>
             <div className="space-y-2">
-              <ContentTypeRow label="Generate" desc="No content yet — generates text only. Media is not started." />
-              <ContentTypeRow label="Generate Media" desc="Text exists, no media — starts the image or video pipeline for that platform." />
-              <ContentTypeRow label="Regenerate All" desc="Replaces existing text and re-runs media generation." />
-              <ContentTypeRow label="Content only" desc="Replaces text only; does not touch media." />
-              <ContentTypeRow label="Media only" desc="Re-runs the media pipeline without changing text (useful after a failure)." />
+              <ContentTypeRow label="Generate N Posts" desc="No posts yet — generates all planned posts as text only." />
+              <ContentTypeRow label="Generate N More" desc="Some posts exist but not all — generates the remaining posts as text only." />
+              <ContentTypeRow label="Generate Media (N)" desc="All text posts exist but media is missing — starts the image or video pipeline for each post." />
+              <ContentTypeRow label="Regenerate All" desc="Deletes all posts and regenerates them as text only." />
+              <ContentTypeRow label="Content only" desc="Replaces all posts with fresh text; does not start media." />
+              <ContentTypeRow label="Media only" desc="Re-runs the media pipeline for posts that are missing media, without changing text." />
             </div>
           </div>
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Generate All button (Brief detail page)</p>
-            <p className="text-gray-600">The <strong>Generate All (n)</strong> button on a brief generates text for every platform one at a time. The button shows live progress — <em>Generating 2 of 6...</em> — and each platform&apos;s content appears on screen as soon as it is ready, so you do not have to wait for all platforms to finish before seeing results. No media is started. Once you are happy with the text on a row, click its <strong>Generate Media</strong> button. To generate text and media together for all platforms at once, click the chevron next to the button and choose <strong>Generate All with Media</strong>.</p>
+            <p className="text-gray-600">The <strong>Generate All</strong> button on a brief generates text for every platform one at a time, respecting each platform&apos;s post count. The button shows live progress — <em>Generating post 3 of 12...</em> — and each post appears on screen as soon as it is ready. No media is started. Once you are happy with the text on a row, click its <strong>Generate Media</strong> button. To generate text and media together for all platforms at once, click the chevron next to the button and choose <strong>Generate All with Media</strong>.</p>
           </div>
           <Note text="Video generation (RunwayML) runs asynchronously and may take 1–3 minutes after you click Generate Media. The status updates automatically — no need to refresh. The AI clip is always 10 seconds; voiceover and final assembly are done outside this tool." />
           <Tip text="If a media job fails (red indicator), use Media only from the dropdown to re-run only the media pipeline without re-generating text." />
@@ -129,9 +130,18 @@ export default function HelpPage() {
         <SectionCard id="calendar" icon="Calendar" title="Calendar">
           <p>The <strong>Calendar</strong> gives a month-view of all scheduled content across clients and platforms.</p>
           <Step n={1} text="Use the month navigation arrows to move between months." />
-          <Step n={2} text="Click any content chip on the calendar to open the detail view." />
-          <Step n={3} text='To set or change a post scheduled date, open it from Generate or Approvals and edit the "Scheduled Date" field.' />
+          <Step n={2} text="Each day that has content shows colour-coded chips — click any chip to open the detail view." />
+          <Step n={3} text='To set or change a post&apos;s scheduled date, open it from Generate or Approvals and edit the "Scheduled Date" field.' />
           <Note text="If no scheduled date is set on a content item, it defaults to the first day of its brief's month on the calendar." />
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Event badges</p>
+            <p className="text-gray-600 mb-2">The calendar highlights important dates with small coloured badges above the content chips so you can plan posts around them.</p>
+            <div className="space-y-2">
+              <StatusRow label="National" color="bg-amber-100 text-amber-700" desc="Indian national holidays — Republic Day, Independence Day, Gandhi Jayanti, etc." />
+              <StatusRow label="Festival" color="bg-violet-100 text-violet-700" desc="Indian festivals — Diwali, Holi, Eid, Christmas, and more." />
+              <StatusRow label="Global" color="bg-teal-100 text-teal-700" desc="Global marketing days — World Environment Day, International Women&apos;s Day, etc." />
+            </div>
+          </div>
         </SectionCard>
 
         {/* Export */}
