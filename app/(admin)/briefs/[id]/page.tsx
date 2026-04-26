@@ -80,7 +80,7 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
                   ) : (
                     <span className="text-xs text-gray-400">Not generated</span>
                   )}
-                  <BriefGenerateButton briefPlatformId={p.id} hasContent={!!latestContent} contentId={latestContent?.id ?? null} />
+                  <BriefGenerateButton briefPlatformId={p.id} hasContent={!!latestContent} contentId={latestContent?.id ?? null} mediaStatus={latestContent?.mediaStatus ?? null} />
                 </div>
               </div>
 

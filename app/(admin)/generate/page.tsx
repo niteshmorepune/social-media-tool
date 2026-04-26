@@ -136,7 +136,7 @@ export default async function GeneratePage({
                           </div>
                         )}
                       </div>
-                      <BriefGenerateButton briefPlatformId={p.id} hasContent={!!content} contentId={content?.id ?? null} />
+                      <BriefGenerateButton briefPlatformId={p.id} hasContent={!!content} contentId={content?.id ?? null} mediaStatus={content?.mediaStatus ?? null} />
                     </div>
                   )
                 })}
