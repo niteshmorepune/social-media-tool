@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import MediaDisplay from './MediaDisplay'
 import ApprovalActions from './ApprovalActions'
 import RegenerateMediaButton from './RegenerateMediaButton'
@@ -20,7 +20,7 @@ interface Slide {
   imageUrl?: string
 }
 
-interface ContentData {
+interface FullContent {
   id: string
   platform: string
   contentType: string
@@ -46,18 +46,67 @@ interface ContentData {
 }
 
 interface Props {
-  content: ContentData
+  contentId: string
   postNumber: number
   scheduledMonth: string
   userRole: string
+  // Preview data kept in sync by the server component after router.refresh()
+  platform: string
+  contentType: string
+  status: string
+  mediaStatus: string
 }
 
-export default function ContentViewDrawer({ content, postNumber, scheduledMonth, userRole }: Props) {
+export default function ContentViewDrawer({
+  contentId, postNumber, scheduledMonth, userRole,
+  platform, contentType, status, mediaStatus,
+}: Props) {
   const [open, setOpen] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const [data, setData] = useState<FullContent | null>(null)
+  const [loading, setLoading] = useState(false)
 
+  // Track previous status/mediaStatus so we can re-fetch when they change while open
+  const prevStatusRef = useRef(status)
+  const prevMediaStatusRef = useRef(mediaStatus)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/content/${contentId}`)
+      if (res.ok) setData(await res.json())
+    } finally {
+      setLoading(false)
+    }
+  }, [contentId])
+
+  // Fetch fresh data every time the drawer opens
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    fetchData()
+  }, [open, fetchData])
+
+  // Re-fetch when parent's status/mediaStatus props change while drawer is open
+  // (happens after router.refresh() triggered by child action components)
+  useEffect(() => {
+    const statusChanged = status !== prevStatusRef.current
+    const mediaStatusChanged = mediaStatus !== prevMediaStatusRef.current
+    prevStatusRef.current = status
+    prevMediaStatusRef.current = mediaStatus
+    if (open && (statusChanged || mediaStatusChanged)) fetchData()
+  }, [status, mediaStatus, open, fetchData])
+
+  // Slide-in animation: mount → next frame → visible
+  useEffect(() => {
+    if (!open) return
+    const id = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(id)
+  }, [open])
+
+  // Keyboard close + body scroll lock
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
     window.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
@@ -66,10 +115,23 @@ export default function ContentViewDrawer({ content, postNumber, scheduledMonth,
     }
   }, [open])
 
+  function openDrawer() {
+    setOpen(true)
+  }
+
+  function close() {
+    setVisible(false)
+    setTimeout(() => setOpen(false), 280)
+  }
+
+  // Show header badges from live fetched data if available, else from props
+  const displayStatus = data?.status ?? status
+  const displayMediaStatus = data?.mediaStatus ?? mediaStatus
+
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={openDrawer}
         className="text-xs text-blue-600 hover:underline shrink-0"
       >
         View →
@@ -79,45 +141,47 @@ export default function ContentViewDrawer({ content, postNumber, scheduledMonth,
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => setOpen(false)}
+            className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-200 ${visible ? 'opacity-100' : 'opacity-0'}`}
+            onClick={close}
           />
 
-          {/* Slide-over drawer */}
-          <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col">
+          {/* Drawer */}
+          <div
+            className={`fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}
+          >
             {/* Header */}
             <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-gray-200 shrink-0">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold text-gray-900">{content.platform}</p>
+                  <p className="font-semibold text-gray-900">{platform}</p>
                   <span className="text-gray-300">·</span>
                   <p className="text-sm text-gray-500">
-                    {content.contentType.charAt(0) + content.contentType.slice(1).toLowerCase()}
+                    {contentType.charAt(0) + contentType.slice(1).toLowerCase()}
                   </p>
                   <span className="text-gray-300">·</span>
                   <p className="text-sm text-gray-500">Post #{postNumber}</p>
                 </div>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  {content.mediaStatus === 'READY' && (
+                  {displayMediaStatus === 'READY' && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-200">
                       Media ready
                     </span>
                   )}
-                  {content.mediaStatus === 'GENERATING' && (
+                  {displayMediaStatus === 'GENERATING' && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 animate-pulse">
                       Generating media...
                     </span>
                   )}
-                  {content.mediaStatus === 'FAILED' && (
-                    <RegenerateMediaButton contentId={content.id} />
+                  {displayMediaStatus === 'FAILED' && (
+                    <RegenerateMediaButton contentId={contentId} />
                   )}
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${getStatusColor(content.status)}`}>
-                    {getStatusLabel(content.status)}
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${getStatusColor(displayStatus)}`}>
+                    {getStatusLabel(displayStatus)}
                   </span>
                 </div>
               </div>
               <button
-                onClick={() => setOpen(false)}
+                onClick={close}
                 className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 shrink-0 transition-colors"
                 aria-label="Close"
               >
@@ -129,75 +193,87 @@ export default function ContentViewDrawer({ content, postNumber, scheduledMonth,
 
             {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-              <MediaDisplay
-                contentId={content.id}
-                contentType={content.contentType}
-                imageUrl={content.imageUrl}
-                videoUrl={content.videoUrl}
-                thumbnailUrl={content.thumbnailUrl}
-                mediaStatus={content.mediaStatus}
-                slides={content.slides}
-              />
-
-              {content.caption && <Field label="Caption" value={content.caption} />}
-              {content.hook && <Field label="Hook (first 3 sec)" value={content.hook} />}
-              {content.copy && <Field label="Copy" value={content.copy} />}
-              {content.script && <Field label="Script" value={content.script} />}
-              {content.onScreenText && <Field label="On-screen Text" value={content.onScreenText} />}
-              {content.hashtags && <Field label="Hashtags" value={content.hashtags} accent />}
-              {content.callToAction && <Field label="Call to Action" value={content.callToAction} />}
-              {content.imagePrompt && <Field label="Image Prompt" value={content.imagePrompt} muted />}
-              {content.videoConcept && <Field label="Video Concept" value={content.videoConcept} muted />}
-              {content.thumbnailPrompt && <Field label="Thumbnail Prompt" value={content.thumbnailPrompt} muted />}
-              {content.duration && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Duration</p>
-                  <p className="text-sm text-gray-600">{content.duration}</p>
+              {loading && !data && (
+                <div className="flex items-center justify-center py-20">
+                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
 
-              {content.slides && content.slides.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Slide Copy</p>
-                  <div className="space-y-2">
-                    {content.slides.map(slide => (
-                      <div key={slide.slideNumber} className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs font-medium text-gray-500 mb-1">Slide {slide.slideNumber}</p>
-                        <p className="text-sm text-gray-800">{slide.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {data && (
+                <>
+                  <MediaDisplay
+                    contentId={data.id}
+                    contentType={data.contentType}
+                    imageUrl={data.imageUrl}
+                    videoUrl={data.videoUrl}
+                    thumbnailUrl={data.thumbnailUrl}
+                    mediaStatus={data.mediaStatus}
+                    slides={data.slides}
+                  />
 
-              {content.revisions.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Revision Notes</p>
-                  <div className="space-y-2">
-                    {content.revisions.map(r => (
-                      <div key={r.id} className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2">
-                        <p className="text-xs font-medium text-yellow-800">{r.requestedBy.name}</p>
-                        <p className="text-sm text-yellow-900 mt-0.5">{r.comment}</p>
+                  {data.caption && <Field label="Caption" value={data.caption} />}
+                  {data.hook && <Field label="Hook (first 3 sec)" value={data.hook} />}
+                  {data.copy && <Field label="Copy" value={data.copy} />}
+                  {data.script && <Field label="Script" value={data.script} />}
+                  {data.onScreenText && <Field label="On-screen Text" value={data.onScreenText} />}
+                  {data.hashtags && <Field label="Hashtags" value={data.hashtags} accent />}
+                  {data.callToAction && <Field label="Call to Action" value={data.callToAction} />}
+                  {data.imagePrompt && <Field label="Image Prompt" value={data.imagePrompt} muted />}
+                  {data.videoConcept && <Field label="Video Concept" value={data.videoConcept} muted />}
+                  {data.thumbnailPrompt && <Field label="Thumbnail Prompt" value={data.thumbnailPrompt} muted />}
+                  {data.duration && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Duration</p>
+                      <p className="text-sm text-gray-600">{data.duration}</p>
+                    </div>
+                  )}
+
+                  {data.slides && data.slides.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Slide Copy</p>
+                      <div className="space-y-2">
+                        {data.slides.map(slide => (
+                          <div key={slide.slideNumber} className="bg-gray-50 rounded-lg p-3">
+                            <p className="text-xs font-medium text-gray-500 mb-1">Slide {slide.slideNumber}</p>
+                            <p className="text-sm text-gray-800">{slide.text}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  )}
+
+                  {data.revisions.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Revision Notes</p>
+                      <div className="space-y-2">
+                        {data.revisions.map(r => (
+                          <div key={r.id} className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2">
+                            <p className="text-xs font-medium text-yellow-800">{r.requestedBy.name}</p>
+                            <p className="text-sm text-yellow-900 mt-0.5">{r.comment}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
-            {/* Footer actions */}
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 shrink-0 space-y-3">
-              <ScheduleDatePicker
-                contentId={content.id}
-                scheduledDate={content.scheduledDate}
-                scheduledMonth={scheduledMonth}
-              />
-              <ApprovalActions
-                contentId={content.id}
-                currentStatus={content.status}
-                userRole={userRole}
-              />
-            </div>
+            {/* Footer actions — only when data is loaded */}
+            {data && (
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 shrink-0 space-y-3">
+                <ScheduleDatePicker
+                  contentId={contentId}
+                  scheduledDate={data.scheduledDate}
+                  scheduledMonth={scheduledMonth}
+                />
+                <ApprovalActions
+                  contentId={contentId}
+                  currentStatus={data.status}
+                  userRole={userRole}
+                />
+              </div>
+            )}
           </div>
         </>
       )}
