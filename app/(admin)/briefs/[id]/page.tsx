@@ -1,12 +1,15 @@
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatMonth, getStatusColor, getStatusLabel } from '@/lib/utils'
 import BriefGenerateButton from '@/components/BriefGenerateButton'
 import BulkGenerateButton from '@/components/BulkGenerateButton'
+import ContentViewDrawer from '@/components/ContentViewDrawer'
 
 export default async function BriefDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const session = await auth()
 
   const brief = await prisma.brief.findUnique({
     where: { id },
@@ -22,6 +25,19 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
   })
 
   if (!brief) notFound()
+
+  // Fetch revisions for all content items in one query (avoids deep-nested Prisma type issues)
+  const contentIds = brief.platforms.flatMap(p => p.content.map(c => c.id))
+  const revisionRows = await prisma.revision.findMany({
+    where: { contentId: { in: contentIds } },
+    orderBy: { createdAt: 'desc' },
+    include: { requestedBy: { select: { name: true } } }
+  })
+  const revisionsByContent: Record<string, typeof revisionRows> = {}
+  for (const r of revisionRows) {
+    if (!revisionsByContent[r.contentId]) revisionsByContent[r.contentId] = []
+    revisionsByContent[r.contentId].push(r)
+  }
 
   const totalPostsPlanned = brief.platforms.reduce((s, p) => s + p.postsCount, 0)
   const totalPostsDone    = brief.platforms.reduce((s, p) => s + p.content.length, 0)
@@ -134,9 +150,39 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
                           <p className="text-xs text-gray-500 truncate">{c.caption}</p>
                         )}
                       </div>
-                      <Link href={`/approvals?content=${c.id}`} className="text-xs text-blue-600 hover:underline shrink-0">
-                        View →
-                      </Link>
+                      <ContentViewDrawer
+                        content={{
+                          id: c.id,
+                          platform: c.platform,
+                          contentType: c.contentType,
+                          status: c.status,
+                          scheduledDate: c.scheduledDate?.toISOString() ?? null,
+                          caption: c.caption,
+                          copy: c.copy,
+                          hook: c.hook,
+                          script: c.script,
+                          onScreenText: c.onScreenText,
+                          hashtags: c.hashtags,
+                          callToAction: c.callToAction,
+                          imagePrompt: c.imagePrompt,
+                          videoConcept: c.videoConcept,
+                          thumbnailPrompt: c.thumbnailPrompt,
+                          duration: c.duration,
+                          imageUrl: c.imageUrl,
+                          videoUrl: c.videoUrl,
+                          thumbnailUrl: c.thumbnailUrl,
+                          mediaStatus: c.mediaStatus,
+                          slides: c.slides as { slideNumber: number; text: string; imagePrompt: string; imageUrl?: string }[] | null,
+                          revisions: (revisionsByContent[c.id] ?? []).map(r => ({
+                            id: r.id,
+                            comment: r.comment,
+                            requestedBy: { name: r.requestedBy.name }
+                          }))
+                        }}
+                        postNumber={i + 1}
+                        scheduledMonth={brief.scheduledMonth.toISOString()}
+                        userRole={session!.user.role}
+                      />
                     </div>
                   ))}
                 </div>
