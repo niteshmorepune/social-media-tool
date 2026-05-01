@@ -99,6 +99,9 @@ User → Notification
 - `lib/cloudinary-client.ts` — Cloudinary config + `uploadFromUrl()`, server-only
 - `lib/media-generation.ts` — Full media pipeline orchestration; `runReplicate()` wrapper handles 429 retries
 - `components/GeneratingPoller.tsx` — Client component; polls `router.refresh()` every 5s when IMAGE/CAROUSEL is GENERATING
+- `components/ContentViewDrawer.tsx` — Client component; slide-over drawer on the brief detail page. Opens on "View →" click, fetches full content via `GET /api/content/[id]` on open (lazy — not baked into page HTML). Re-fetches automatically when `status`/`mediaStatus` props change after a `router.refresh()`. Includes all text fields, media preview, revision notes, ScheduleDatePicker, and ApprovalActions. Slides in/out with CSS transitions.
+- `components/CollapsiblePlatformCard.tsx` — Client component; wraps each platform section on the brief detail page with a chevron toggle. Completed platforms (`existingCount >= postsCount`) default to collapsed.
+- `components/DeleteBriefButton.tsx` — Client component; inline confirm-then-delete for a brief. On success redirects to `/briefs`.
 - `lib/utils.ts` — `PLATFORMS`, `CONTENT_GOALS`, `CAPTION_LIMITS`, `VIDEO_DURATIONS` + UI helpers
 - `prisma/schema.prisma` — Source of truth; no migrations, use `db:push`
 - `types/next-auth.d.ts` — Extends Session with `id`, `role`, `clientId`
@@ -111,10 +114,12 @@ POST   /api/generate/bulk               # all BriefPlatforms in a brief
 GET    /api/media/status/[contentId]    # poll RunwayML; uploads to Cloudinary on SUCCEEDED
 POST   /api/media/regenerate            # retry media pipeline only (non-blocking: returns GENERATING immediately, runs pipeline in background)
 GET/POST        /api/briefs
-GET/PUT/DELETE  /api/briefs/[id]
+GET/PUT/DELETE  /api/briefs/[id]        # DELETE cascades to all platforms, content, and revisions
 GET/POST        /api/clients
 GET/PUT/DELETE  /api/clients/[id]
+GET    /api/content/[id]               # fetch single content item with revisions (used by ContentViewDrawer)
 PATCH  /api/content/[id]               # mode 1: status action; mode 2: { scheduledDate } update (detected by key presence)
+DELETE /api/content/[id]               # delete a single content item
 POST   /api/portal/content/[id]        # CLIENT role approval actions
 GET    /api/export                      # CSV export
 GET/POST /api/team                      # ADMIN only
@@ -126,6 +131,8 @@ GET/PATCH /api/settings/profile         # get or update own name/email
 
 - **Brief form** — the `campaignDescription` DB field is labelled **"Content Brief"** in the UI (renamed from "Campaign Description" to avoid confusion). Section heading is "Brief Details" (was "Campaign Details").
 - **Help & Guide page** — `app/(admin)/help/page.tsx`, accessible to all ADMIN + TEAM roles at `/help`. Covers full workflow: clients → briefs → generate → approvals → portal → calendar → export → team.
+- **Brief detail page** — platform sections are collapsible (chevron toggle). Completed platforms default to collapsed. "View →" on each post opens a slide-over drawer instead of navigating to Approvals. "Delete Brief" button with inline confirmation lives in the page header.
+- **Approvals page** — paginated at 20 items per page. `page` query param (default 1) is preserved alongside `status` filter in pagination links. Filter tab clicks always reset to page 1.
 
 ### Hydration Warnings
 
