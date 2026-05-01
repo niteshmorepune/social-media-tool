@@ -57,6 +57,18 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 })
   }
 
+  // Reassign briefs and revisions to the admin performing the deletion so that
+  // foreign-key constraints don't block the delete (Brief.createdById and
+  // Revision.requestedById have no cascade rule in the schema).
+  await prisma.brief.updateMany({
+    where: { createdById: id },
+    data:  { createdById: session.user.id },
+  })
+  await prisma.revision.updateMany({
+    where: { requestedById: id },
+    data:  { requestedById: session.user.id },
+  })
+
   await prisma.user.delete({ where: { id } })
   return NextResponse.json({ success: true })
 }

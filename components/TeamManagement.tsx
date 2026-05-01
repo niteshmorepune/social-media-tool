@@ -42,12 +42,18 @@ export default function TeamManagement({ members, currentUserId }: { members: Me
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Remove ${name} from the team?`)) return
     setDeleting(id)
-    await fetch('/api/team', {
+    setError('')
+    const res = await fetch('/api/team', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
     })
     setDeleting(null)
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setError(d.error ?? 'Failed to remove member. Try again.')
+      return
+    }
     router.refresh()
   }
 
