@@ -55,6 +55,18 @@ export default function HelpPage() {
           <Step n={4} text='Save the brief. It will appear in the Briefs list with status "Draft".' />
           <Note text="Each platform row tracks its own post count. All posts for a platform are generated from the same brief but Claude uses a different angle, hook, and message for each — so a brief set to 8 Instagram posts will produce 8 distinct captions." />
           <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Viewing and reviewing posts from the brief</p>
+            <p className="text-gray-600">Each generated post has a <strong>View →</strong> button. Clicking it opens a slide-over panel on the right — without leaving the brief — showing the full post: media preview, caption, copy, hashtags, revision notes, and all approval actions (Approve, Reject, Send to Client, Add Note). You can also set the post&apos;s scheduled date and retry failed media from inside the panel. Press <strong>Escape</strong> or click the backdrop to close it.</p>
+          </div>
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Collapsible platform sections</p>
+            <p className="text-gray-600">On the brief detail page, each platform is shown as a collapsible card. Platforms where all planned posts have been generated are <strong>collapsed by default</strong> to keep the page tidy. Click the chevron (›) on any platform card to expand or collapse it.</p>
+          </div>
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Deleting a brief</p>
+            <p className="text-gray-600">Click <strong>Delete Brief</strong> in the page header. You will be asked to confirm before anything is removed. Deleting a brief permanently removes it along with all its generated content, media, and revision history — this cannot be undone.</p>
+          </div>
+          <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Content Types explained</p>
             <div className="space-y-2">
               <ContentTypeRow label="Image" desc="Single static image with caption. Generated via Flux-1.1-pro." />
@@ -101,7 +113,7 @@ export default function HelpPage() {
 
         {/* Approvals */}
         <SectionCard id="approvals" icon="Approvals" title="Approvals & Revisions">
-          <p>The <strong>Approvals</strong> page shows all content awaiting a decision. Clients review via their own portal; you action their feedback here.</p>
+          <p>The <strong>Approvals</strong> page shows all content awaiting a decision. Clients review via their own portal; you action their feedback here. The page loads <strong>20 posts at a time</strong> — use the Prev / Next buttons at the top and bottom to move between pages. Changing the status filter resets to page 1.</p>
           <div className="border-t border-gray-100 pt-3">
             <p className="font-medium text-gray-900 mb-2">Content statuses</p>
             <div className="space-y-2">
@@ -111,10 +123,10 @@ export default function HelpPage() {
               <StatusRow label="Rejected" color="bg-red-100 text-red-700" desc="Client rejected — regenerate or discuss." />
             </div>
           </div>
-          <Step n={1} text="When a client requests a revision, read their comment on the Approvals page." />
+          <Step n={1} text="When a client requests a revision, read their comment — either on this page or by clicking View → on the post from the brief detail page." />
           <Step n={2} text="Go to Generate, find the content, and regenerate (or manually edit the caption if only text needs changing)." />
           <Step n={3} text='Once updated, the status resets to "Pending" and the client is notified to review again.' />
-          <Tip text="You can also approve or reject content on behalf of the client directly from the Approvals page — useful for internal sign-off workflows." />
+          <Tip text="You can approve, reject, or send content to the client directly from the View → panel on the brief detail page — no need to navigate to Approvals at all." />
         </SectionCard>
 
         {/* Portal */}
@@ -165,6 +177,7 @@ export default function HelpPage() {
           <Step n={2} text="For CLIENT role, also select which client account they belong to." />
           <Step n={3} text="The user can now log in. Share their credentials — they cannot change their email from the portal." />
           <Tip text="Team members can change their own password and display name from the Settings page." />
+          <Note text="When you remove a team member, any briefs or revision notes they created are automatically reassigned to your admin account so no data is lost." />
         </SectionCard>
 
       </div>
