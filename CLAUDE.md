@@ -61,13 +61,22 @@ User → Notification
 
 - `Content.mediaStatus`: plain string enum `NONE | GENERATING | READY | FAILED`
 - `Content.scheduledDate`: nullable; calendar falls back to day 1 of `Brief.scheduledMonth` when null
+- `Content.internalNote`: nullable Text; team-only note, never returned to CLIENT role or shown in portal
 - Regenerating a BriefPlatform deletes its existing Content row first
+- `Client` has 5 Brand Voice Profile fields (all nullable Text): `brandKeywords`, `contentDos`, `contentDonts`, `competitorsToAvoid`, `preferredHashtags` — injected into AI prompts at generation time via `buildBrandVoiceSection(client)` helper
 
 ### Content Generation — `POST /api/generate`
 
+Accepts optional params beyond `briefPlatformId`:
+- `direction` (string) — freeform instruction injected as top-priority note overriding the brief
+- `contentIdToReplace` (string) — if set, deletes that specific Content row before inserting the new one (used by "Regenerate with Direction" in ContentViewDrawer); if not set and `addPost` is false, deletes all platform content
+- `addPost` (bool) — when true, appends rather than replacing; combined with `contentIdToReplace` for single-post regeneration
+- `skipMedia` (bool) — skip the media pipeline entirely (text only)
+
 1. Calls `claude-sonnet-4-6` with `tool_choice: { type: 'any' }` using platform-specific tool schemas (`generate_image_content`, `generate_video_content`, `generate_carousel_content`)
-2. Saves text fields to `Content` immediately
-3. Triggers media pipeline by `contentType`:
+2. Injects `buildBrandVoiceSection(client)` into the user prompt (returns empty string when client has no Brand Voice fields set — backward-compatible)
+3. Saves text fields to `Content` immediately
+4. Triggers media pipeline by `contentType` (unless `skipMedia`):
    - **IMAGE**: Replicate `flux-1.1-pro` → Cloudinary → `imageUrl`, `mediaStatus=READY`
    - **VIDEO**: Replicate thumbnail → Cloudinary → RunwayML `gen3a_turbo` (async, **10s clip**, silent) → `mediaJobId`, `mediaStatus=GENERATING`. `VideoStatusPoller` polls `GET /api/media/status/[contentId]` every 6s until RunwayML SUCCEEDED → uploads video to Cloudinary
    - **CAROUSEL**: Replicate generates one image per slide sequentially (rate limit avoidance)
@@ -99,9 +108,10 @@ User → Notification
 - `lib/cloudinary-client.ts` — Cloudinary config + `uploadFromUrl()`, server-only
 - `lib/media-generation.ts` — Full media pipeline orchestration; `runReplicate()` wrapper handles 429 retries
 - `components/GeneratingPoller.tsx` — Client component; polls `router.refresh()` every 5s when IMAGE/CAROUSEL is GENERATING
-- `components/ContentViewDrawer.tsx` — Client component; slide-over drawer on the brief detail page. Opens on "View →" click, fetches full content via `GET /api/content/[id]` on open (lazy — not baked into page HTML). Re-fetches automatically when `status`/`mediaStatus` props change after a `router.refresh()`. Includes all text fields, media preview, revision notes, ScheduleDatePicker, and ApprovalActions. Slides in/out with CSS transitions.
+- `components/ContentViewDrawer.tsx` — Client component; slide-over drawer on the brief detail page. Opens on "View →" click, fetches full content via `GET /api/content/[id]` on open (lazy — not baked into page HTML). Re-fetches automatically when `status`/`mediaStatus` props change after a `router.refresh()`. Includes all text fields, media preview, revision notes, ScheduleDatePicker, ApprovalActions, **Regenerate with Direction** footer (direction input + ↺ Regenerate button → calls `/api/generate` with `contentIdToReplace`), and **Internal Note** amber textarea (auto-saves on blur via `PATCH /api/content/[id]` with `{ internalNote }`). Slides in/out with CSS transitions. Props include `briefPlatformId` and `totalPosts` (needed for re-generation call).
 - `components/CollapsiblePlatformCard.tsx` — Client component; wraps each platform section on the brief detail page with a chevron toggle. Completed platforms (`existingCount >= postsCount`) default to collapsed.
 - `components/DeleteBriefButton.tsx` — Client component; inline confirm-then-delete for a brief. On success redirects to `/briefs`.
+- `components/PlatformMockup.tsx` — Server component; renders content inside a platform-styled mockup frame. Used in the client portal. Switch on `platform` prop: Instagram, Facebook, LinkedIn, Twitter, TikTok, Google Business, Default. Uses `extractMediaProps()` helper to pass only the 6 media-relevant fields to inner `MockupMedia` component (avoids TypeScript excess-property errors from spread). Caption and hashtags embedded in mockup; other fields shown below.
 - `lib/utils.ts` — `PLATFORMS`, `CONTENT_GOALS`, `CAPTION_LIMITS`, `VIDEO_DURATIONS` + UI helpers
 - `prisma/schema.prisma` — Source of truth; no migrations, use `db:push`
 - `types/next-auth.d.ts` — Extends Session with `id`, `role`, `clientId`
@@ -118,7 +128,7 @@ GET/PUT/DELETE  /api/briefs/[id]        # DELETE cascades to all platforms, cont
 GET/POST        /api/clients
 GET/PUT/DELETE  /api/clients/[id]
 GET    /api/content/[id]               # fetch single content item with revisions (used by ContentViewDrawer)
-PATCH  /api/content/[id]               # mode 1: status action; mode 2: { scheduledDate } update (detected by key presence)
+PATCH  /api/content/[id]               # mode 1: status action; mode 2: { scheduledDate } update; mode 3: { internalNote } update (all detected by key presence)
 DELETE /api/content/[id]               # delete a single content item
 POST   /api/portal/content/[id]        # CLIENT role approval actions
 GET    /api/export                      # CSV export
@@ -130,9 +140,12 @@ GET/PATCH /api/settings/profile         # get or update own name/email
 ### UI / Naming Notes
 
 - **Brief form** — the `campaignDescription` DB field is labelled **"Content Brief"** in the UI (renamed from "Campaign Description" to avoid confusion). Section heading is "Brief Details" (was "Campaign Details").
-- **Help & Guide page** — `app/(admin)/help/page.tsx`, accessible to all ADMIN + TEAM roles at `/help`. Covers full workflow: clients → briefs → generate → approvals → portal → calendar → export → team.
+- **Help & Guide page** — `app/(admin)/help/page.tsx`, accessible to all ADMIN + TEAM roles at `/help`. Covers full workflow including Brand Voice Profile, Regenerate with Direction, Internal Notes, Platform Mockups, and the Reports page.
 - **Brief detail page** — platform sections are collapsible (chevron toggle). Completed platforms default to collapsed. "View →" on each post opens a slide-over drawer instead of navigating to Approvals. "Delete Brief" button with inline confirmation lives in the page header.
 - **Approvals page** — paginated at 20 items per page. `page` query param (default 1) is preserved alongside `status` filter in pagination links. Filter tab clicks always reset to page 1.
+- **Reports page** — `app/(admin)/reports/page.tsx`. Single Prisma `findMany` across all content, aggregated in JS. Shows: 4 stat cards (total, approval rate %, awaiting, avg days to approval), proportional status bar, per-client table, per-platform stacked bars, oldest-awaiting list (top 10 by updatedAt ASC in PENDING/REVISION, age coloured orange ≥3d / red ≥7d).
+- **Client portal** — posts rendered in `PlatformMockup` component instead of raw MediaDisplay. Caption and hashtags embedded inside the mockup frame; hook/script/CTA shown below as supporting text. Internal notes never exposed to CLIENT role.
+- **Brand Voice Profile** — `Client` form (`components/ClientForm.tsx`) has a "Brand Voice Profile" section at the bottom with tone keyword chips (15 presets + free text), Always Do / Never Do textareas, competitors field, and hashtags field. Toggle logic uses `Set` with `if/else` (not ternary expression — ESLint `no-unused-expressions` blocks that pattern).
 
 ### Hydration Warnings
 
