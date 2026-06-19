@@ -153,6 +153,8 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
                       <ContentViewDrawer
                         contentId={c.id}
                         postNumber={i + 1}
+                        totalPosts={p.postsCount}
+                        briefPlatformId={p.id}
                         scheduledMonth={brief.scheduledMonth.toISOString()}
                         userRole={session!.user.role}
                         platform={c.platform}

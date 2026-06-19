@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import MediaDisplay from './MediaDisplay'
 import ApprovalActions from './ApprovalActions'
 import RegenerateMediaButton from './RegenerateMediaButton'
@@ -48,6 +49,8 @@ interface FullContent {
 interface Props {
   contentId: string
   postNumber: number
+  totalPosts: number
+  briefPlatformId: string
   scheduledMonth: string
   userRole: string
   // Preview data kept in sync by the server component after router.refresh()
@@ -58,13 +61,17 @@ interface Props {
 }
 
 export default function ContentViewDrawer({
-  contentId, postNumber, scheduledMonth, userRole,
+  contentId, postNumber, totalPosts, briefPlatformId, scheduledMonth, userRole,
   platform, contentType, status, mediaStatus,
 }: Props) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [visible, setVisible] = useState(false)
   const [data, setData] = useState<FullContent | null>(null)
   const [loading, setLoading] = useState(false)
+  const [direction, setDirection] = useState('')
+  const [regenerating, setRegenerating] = useState(false)
+  const [regenError, setRegenError] = useState('')
 
   // Track previous status/mediaStatus so we can re-fetch when they change while open
   const prevStatusRef = useRef(status)
@@ -122,6 +129,36 @@ export default function ContentViewDrawer({
   function close() {
     setVisible(false)
     setTimeout(() => setOpen(false), 280)
+  }
+
+  async function handleRegenerate() {
+    setRegenError('')
+    setRegenerating(true)
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          briefPlatformId,
+          skipMedia: true,
+          addPost: true,
+          postNumber,
+          totalPosts,
+          direction: direction.trim() || undefined,
+          contentIdToReplace: contentId,
+        }),
+      })
+      if (!res.ok) {
+        setRegenError('Regeneration failed. Please try again.')
+        return
+      }
+      close()
+      router.refresh()
+    } catch {
+      setRegenError('Request failed.')
+    } finally {
+      setRegenerating(false)
+    }
   }
 
   // Show header badges from live fetched data if available, else from props
@@ -272,6 +309,27 @@ export default function ContentViewDrawer({
                   currentStatus={data.status}
                   userRole={userRole}
                 />
+                <div className="pt-1 border-t border-gray-200 space-y-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Regenerate Text</p>
+                  <div className="flex gap-2">
+                    <input
+                      value={direction}
+                      onChange={e => setDirection(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !regenerating) handleRegenerate() }}
+                      placeholder="Direction (optional): e.g. make it shorter, more emotional, focus on the offer..."
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      disabled={regenerating}
+                    />
+                    <button
+                      onClick={handleRegenerate}
+                      disabled={regenerating}
+                      className="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-900 disabled:opacity-50 text-white rounded-lg transition-colors whitespace-nowrap shrink-0"
+                    >
+                      {regenerating ? 'Generating...' : '↺ Regenerate'}
+                    </button>
+                  </div>
+                  {regenError && <p className="text-xs text-red-500">{regenError}</p>}
+                </div>
               </div>
             )}
           </div>
