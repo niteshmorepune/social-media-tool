@@ -82,6 +82,37 @@ function carouselTools(platform: string) {
   }]
 }
 
+// ── Brand voice prompt block ─────────────────────────────────────────────────
+
+function buildBrandVoiceSection(client: {
+  brandKeywords?: string | null
+  contentDos?: string | null
+  contentDonts?: string | null
+  competitorsToAvoid?: string | null
+  preferredHashtags?: string | null
+}): string {
+  const parts: string[] = []
+  if (client.brandKeywords) {
+    parts.push(`- Tone Keywords: ${client.brandKeywords}`)
+  }
+  if (client.contentDos) {
+    const lines = client.contentDos.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length) parts.push(`- Always Do:\n${lines.map(l => `  • ${l}`).join('\n')}`)
+  }
+  if (client.contentDonts) {
+    const lines = client.contentDonts.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length) parts.push(`- Never Do:\n${lines.map(l => `  • ${l}`).join('\n')}`)
+  }
+  if (client.competitorsToAvoid) {
+    parts.push(`- Do NOT sound like these brands: ${client.competitorsToAvoid}`)
+  }
+  if (client.preferredHashtags) {
+    parts.push(`- Preferred hashtags to consider: ${client.preferredHashtags}`)
+  }
+  if (!parts.length) return ''
+  return `\n\nBRAND VOICE RULES (strictly follow for all content):\n${parts.join('\n')}`
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
@@ -125,7 +156,7 @@ CLIENT BRIEF:
 - Target Audience: ${client.targetAudience}
 - Campaign Goal: ${brief.contentGoal}
 - Campaign Description: ${brief.campaignDescription}
-${brief.specialInstructions ? `- Special Instructions: ${brief.specialInstructions}` : ''}${postVarietyNote}
+${brief.specialInstructions ? `- Special Instructions: ${brief.specialInstructions}` : ''}${buildBrandVoiceSection(client)}${postVarietyNote}
 
 Generate high-quality, engaging ${platform} ${contentType.toLowerCase()} content.
 For image/video prompts, write rich, detailed descriptions suitable for AI generation — include visual style, mood, colors, lighting, and composition.`

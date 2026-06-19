@@ -29,11 +29,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const { id } = await params
   const body = await req.json()
-  const { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId } = body
+  const { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId,
+          brandKeywords, contentDos, contentDonts, competitorsToAvoid, preferredHashtags } = body
 
   const client = await prisma.client.update({
     where: { id },
-    data: { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId }
+    data: { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId,
+            brandKeywords, contentDos, contentDonts, competitorsToAvoid, preferredHashtags }
   })
 
   return NextResponse.json(client)

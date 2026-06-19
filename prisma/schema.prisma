@@ -61,6 +61,12 @@ model Client {
   primaryColor   String?  @default("#3B82F6")
   // Team member assigned to manage this client
   assignedToId   String?
+  // Brand Voice Profile — injected into AI prompts at generation time
+  brandKeywords      String? @db.Text
+  contentDos         String? @db.Text
+  contentDonts       String? @db.Text
+  competitorsToAvoid String? @db.Text
+  preferredHashtags  String? @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

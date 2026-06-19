@@ -82,6 +82,37 @@ function carouselTools(platform: string) {
   }]
 }
 
+// ── Brand voice prompt block ─────────────────────────────────────────────────
+
+function buildBrandVoiceSection(client: {
+  brandKeywords?: string | null
+  contentDos?: string | null
+  contentDonts?: string | null
+  competitorsToAvoid?: string | null
+  preferredHashtags?: string | null
+}): string {
+  const parts: string[] = []
+  if (client.brandKeywords) {
+    parts.push(`- Tone Keywords: ${client.brandKeywords}`)
+  }
+  if (client.contentDos) {
+    const lines = client.contentDos.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length) parts.push(`- Always Do:\n${lines.map(l => `  • ${l}`).join('\n')}`)
+  }
+  if (client.contentDonts) {
+    const lines = client.contentDonts.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length) parts.push(`- Never Do:\n${lines.map(l => `  • ${l}`).join('\n')}`)
+  }
+  if (client.competitorsToAvoid) {
+    parts.push(`- Do NOT sound like these brands: ${client.competitorsToAvoid}`)
+  }
+  if (client.preferredHashtags) {
+    parts.push(`- Preferred hashtags to consider: ${client.preferredHashtags}`)
+  }
+  if (!parts.length) return ''
+  return `\n\nBRAND VOICE RULES (strictly follow for all content):\n${parts.join('\n')}`
+}
+
 // ── Text generation via Claude ────────────────────────────────────────────────
 
 async function generateTextContent(
@@ -91,7 +122,12 @@ async function generateTextContent(
     contentGoal:          string
     campaignDescription:  string
     specialInstructions:  string | null
-    client: { name: string; industry: string; brandTone: string; targetAudience: string }
+    client: {
+      name: string; industry: string; brandTone: string; targetAudience: string
+      brandKeywords?: string | null; contentDos?: string | null
+      contentDonts?: string | null; competitorsToAvoid?: string | null
+      preferredHashtags?: string | null
+    }
   }
 ): Promise<Record<string, unknown>> {
   const { client } = brief
@@ -110,7 +146,7 @@ CLIENT BRIEF:
 - Target Audience: ${client.targetAudience}
 - Campaign Goal: ${brief.contentGoal}
 - Campaign Description: ${brief.campaignDescription}
-${brief.specialInstructions ? `- Special Instructions: ${brief.specialInstructions}` : ''}
+${brief.specialInstructions ? `- Special Instructions: ${brief.specialInstructions}` : ''}${buildBrandVoiceSection(client)}
 
 Generate high-quality, engaging ${platform} ${contentType.toLowerCase()} content.
 For image/video prompts, write rich, detailed descriptions suitable for AI generation.`

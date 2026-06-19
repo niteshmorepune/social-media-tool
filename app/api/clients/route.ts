@@ -26,14 +26,16 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId } = body
+  const { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId,
+          brandKeywords, contentDos, contentDonts, competitorsToAvoid, preferredHashtags } = body
 
   if (!name || !industry || !brandTone || !targetAudience) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
   const client = await prisma.client.create({
-    data: { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId }
+    data: { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId,
+            brandKeywords, contentDos, contentDonts, competitorsToAvoid, preferredHashtags }
   })
 
   return NextResponse.json(client, { status: 201 })
