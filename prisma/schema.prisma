@@ -140,6 +140,9 @@ model Content {
   duration        String? // e.g. "30 seconds", "60 seconds"
   thumbnailPrompt String? @db.Text
 
+  // ── Internal note (team-only, never shown to client) ──
+  internalNote String? @db.Text
+
   // ── Generated media ────────────────────────────────
   // Stores Cloudinary CDN URLs after generation
   imageUrl     String? @db.Text // IMAGE: generated image

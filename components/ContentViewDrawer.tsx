@@ -42,6 +42,7 @@ interface FullContent {
   videoUrl: string | null
   thumbnailUrl: string | null
   mediaStatus: string
+  internalNote: string | null
   slides: Slide[] | null
   revisions: Revision[]
 }
@@ -72,6 +73,8 @@ export default function ContentViewDrawer({
   const [direction, setDirection] = useState('')
   const [regenerating, setRegenerating] = useState(false)
   const [regenError, setRegenError] = useState('')
+  const [noteText, setNoteText] = useState('')
+  const [noteSaved, setNoteSaved] = useState(false)
 
   // Track previous status/mediaStatus so we can re-fetch when they change while open
   const prevStatusRef = useRef(status)
@@ -129,6 +132,26 @@ export default function ContentViewDrawer({
   function close() {
     setVisible(false)
     setTimeout(() => setOpen(false), 280)
+  }
+
+  // Sync note text whenever data is (re-)fetched
+  useEffect(() => {
+    if (data) setNoteText(data.internalNote ?? '')
+  }, [data])
+
+  async function saveNote() {
+    if (!data) return
+    if (noteText === (data.internalNote ?? '')) return
+    try {
+      await fetch(`/api/content/${contentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ internalNote: noteText || null }),
+      })
+      setData(d => d ? { ...d, internalNote: noteText || null } : d)
+      setNoteSaved(true)
+      setTimeout(() => setNoteSaved(false), 2000)
+    } catch { /* silent */ }
   }
 
   async function handleRegenerate() {
@@ -292,6 +315,23 @@ export default function ContentViewDrawer({
                       </div>
                     </div>
                   )}
+
+                  {/* Internal note — team only, never shown to client */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Internal Note</p>
+                      <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">Team only</span>
+                    </div>
+                    <textarea
+                      value={noteText}
+                      onChange={e => setNoteText(e.target.value)}
+                      onBlur={saveNote}
+                      rows={3}
+                      placeholder="Add a private note for the team... (e.g. client wants to post Tuesday, waiting on photo from client)"
+                      className="w-full px-3 py-2 text-sm border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none bg-amber-50 placeholder-amber-300 text-gray-800"
+                    />
+                    {noteSaved && <p className="text-xs text-green-600 mt-1">Saved</p>}
+                  </div>
                 </>
               )}
             </div>

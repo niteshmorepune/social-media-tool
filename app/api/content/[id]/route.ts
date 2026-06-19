@@ -37,6 +37,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json(updated)
   }
 
+  // Internal note update — team only
+  if ('internalNote' in body) {
+    const updated = await prisma.content.update({
+      where: { id },
+      data: { internalNote: body.internalNote ?? null }
+    })
+    return NextResponse.json(updated)
+  }
+
   const validActions = ['APPROVE', 'REJECT', 'SEND_TO_CLIENT']
   if (!validActions.includes(action)) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
