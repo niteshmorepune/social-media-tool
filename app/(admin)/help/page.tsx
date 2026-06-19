@@ -10,9 +10,9 @@ export default function HelpPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">On this page</p>
         <div className="flex flex-wrap gap-2">
-          {['overview','clients','briefs','generate','approvals','portal','calendar','export','team'].map(id => (
+          {['overview','clients','briefs','generate','approvals','reports','portal','calendar','export','team'].map(id => (
             <a key={id} href={`#${id}`} className="text-sm text-blue-600 hover:text-blue-800 hover:underline capitalize">
-              {id === 'overview' ? 'How It Works' : id === 'generate' ? 'Generating Content' : id.charAt(0).toUpperCase() + id.slice(1)}
+              {id === 'overview' ? 'How It Works' : id === 'generate' ? 'Generating Content' : id === 'reports' ? 'Approval Report' : id.charAt(0).toUpperCase() + id.slice(1)}
             </a>
           ))}
         </div>
@@ -44,6 +44,18 @@ export default function HelpPage() {
           <Step n={2} text="Fill in the business name, industry, and any brand notes (tone of voice, colours, things to avoid). These are fed directly into AI prompts." />
           <Step n={3} text="Save. The client now appears in the list and can be selected when creating briefs." />
           <Tip text="Detailed brand notes produce much better AI output. Include adjectives that describe the brand voice (e.g. friendly but professional, avoid jargon)." />
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Brand Voice Profile</p>
+            <p className="text-gray-600 mb-3">Each client has a <strong>Brand Voice Profile</strong> — a set of structured fields that are automatically injected into every AI generation prompt for that client, ensuring consistent tone and messaging across all content.</p>
+            <div className="space-y-2">
+              <ContentTypeRow label="Tone Keywords" desc="Pick from preset adjectives (Friendly, Bold, Professional…) or type your own, comma-separated. These words steer Claude's writing style for every post." />
+              <ContentTypeRow label="Always Do" desc="Things the brand must always include — e.g. 'Mention our 5-year warranty', 'Use first-person plural (we/our)'." />
+              <ContentTypeRow label="Never Do" desc="Hard restrictions — e.g. 'Never mention competitor prices', 'No exclamation marks'." />
+              <ContentTypeRow label="Competitors to Avoid" desc="Brand or product names that should never appear in any generated content." />
+              <ContentTypeRow label="Preferred Hashtags" desc="Hashtags to include or draw from — Claude will weave these into the hashtag suggestions for each post." />
+            </div>
+            <Tip text="You can leave any Brand Voice field blank — only the fields you fill in are sent to Claude. Existing clients without Brand Voice data continue to work exactly as before." />
+          </div>
         </SectionCard>
 
         {/* Briefs */}
@@ -56,7 +68,17 @@ export default function HelpPage() {
           <Note text="Each platform row tracks its own post count. All posts for a platform are generated from the same brief but Claude uses a different angle, hook, and message for each — so a brief set to 8 Instagram posts will produce 8 distinct captions." />
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Viewing and reviewing posts from the brief</p>
-            <p className="text-gray-600">Each generated post has a <strong>View →</strong> button. Clicking it opens a slide-over panel on the right — without leaving the brief — showing the full post: media preview, caption, copy, hashtags, revision notes, and all approval actions (Approve, Reject, Send to Client, Add Note). You can also set the post&apos;s scheduled date and retry failed media from inside the panel. Press <strong>Escape</strong> or click the backdrop to close it.</p>
+            <p className="text-gray-600 mb-3">Each generated post has a <strong>View →</strong> button. Clicking it opens a slide-over panel on the right — without leaving the brief — showing the full post: media preview, caption, copy, hashtags, revision notes, and all approval actions (Approve, Reject, Send to Client, Add Note). You can also set the post&apos;s scheduled date and retry failed media from inside the panel. Press <strong>Escape</strong> or click the backdrop to close it.</p>
+            <div className="space-y-3">
+              <div>
+                <p className="font-medium text-gray-800 mb-1">Regenerate with Direction</p>
+                <p className="text-gray-600">At the bottom of the panel there is a <strong>Regenerate Text</strong> field. Type a direction — e.g. <em>&ldquo;make it shorter and punchier&rdquo;</em>, <em>&ldquo;focus on the discount offer&rdquo;</em>, <em>&ldquo;more emotional tone&rdquo;</em> — then click <strong>↺ Regenerate</strong>. This replaces only that single post with a new AI-generated version guided by your direction. All other posts in the platform are untouched. The direction is the top priority for Claude and overrides the brief and brand voice for that generation.</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-800 mb-1">Internal Notes</p>
+                <p className="text-gray-600">Each post has an <strong>Internal Note</strong> field — an amber text area visible only to ADMIN and TEAM users. Use it for things like <em>&ldquo;client wants to post this on Tuesday&rdquo;</em> or <em>&ldquo;waiting for client photo&rdquo;</em>. Notes auto-save when you click away (no save button needed). Internal notes are <strong>never shown</strong> in the client portal.</p>
+              </div>
+            </div>
           </div>
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Collapsible platform sections</p>
@@ -129,13 +151,39 @@ export default function HelpPage() {
           <Tip text="You can approve, reject, or send content to the client directly from the View → panel on the brief detail page — no need to navigate to Approvals at all." />
         </SectionCard>
 
+        {/* Reports */}
+        <SectionCard id="reports" icon="Reports" title="Approval Report">
+          <p>The <strong>Reports</strong> page (sidebar → Reports) gives a management-level snapshot of your approval pipeline across all clients and platforms — at a glance, you can see where things stand without digging through the Approvals list.</p>
+          <div className="space-y-2 mt-1">
+            <ContentTypeRow label="Stat Cards" desc="Four summary figures at the top: total content items, approval rate %, items currently awaiting action (pending + revision), and average days from generation to approval." />
+            <ContentTypeRow label="Status Bar" desc="A single proportional bar showing the split between Approved (green), Pending (yellow), Revision Requested (orange), and Rejected (red) across all content." />
+            <ContentTypeRow label="By Client" desc="A table with one row per client showing their totals for each status and their individual approval rate. Sorted by total posts descending so your most active clients appear first." />
+            <ContentTypeRow label="By Platform" desc="A stacked bar for each platform (Instagram, LinkedIn, etc.) with the same colour coding, plus total post count and approval rate badge." />
+            <ContentTypeRow label="Oldest Awaiting Action" desc="A ranked list of up to 10 content items that have been stuck in Pending or Revision the longest. Days waiting are highlighted in orange (3+ days) or red (7+ days) so you can see at a glance which items need chasing. Links to the full Approvals page." />
+          </div>
+          <Tip text="Check Reports at the start of each week to quickly spot which clients have stalled approvals or low approval rates before they become problems." />
+        </SectionCard>
+
         {/* Portal */}
         <SectionCard id="portal" icon="Portal" title="Client Portal">
           <p>Clients log in at <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">/portal</code> with their own credentials (CLIENT role). They see only their own content — no other client data is visible.</p>
           <Step n={1} text='Create a CLIENT-role user via Team then "New Member" and assign them to the correct client.' />
           <Step n={2} text="Share their login credentials. They visit the site and log in — they land directly on the portal." />
           <Step n={3} text="In the portal, clients can Approve, Request Revision (with a comment), or Reject each content item." />
-          <Note text="Clients cannot see the Generate page, Briefs, other Clients, or any admin/team functionality." />
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Platform preview mockups</p>
+            <p className="text-gray-600 mb-2">Instead of showing raw text and media, each post in the portal is displayed inside a <strong>platform-styled mockup</strong> — a realistic frame that resembles how the post will look on the actual platform. This helps clients visualise the final result and reduces back-and-forth over formatting questions.</p>
+            <div className="space-y-2">
+              <ContentTypeRow label="Instagram" desc="Square or portrait frame with gradient avatar ring, action bar (heart, comment, send, bookmark), caption with @handle prefix, and hashtags in blue." />
+              <ContentTypeRow label="Facebook" desc="Page post layout with blue-f avatar, post text above media, reaction counts, and Like / Comment / Share bar." />
+              <ContentTypeRow label="LinkedIn" desc="Company post with letter avatar on blue, company name and Follow label, post text and hashtags above media, 4-button action row." />
+              <ContentTypeRow label="Twitter / X" desc="Tweet layout with verified badge, tweet text, rounded media frame, timestamp and view count, and icon action row." />
+              <ContentTypeRow label="TikTok" desc="Full-bleed dark frame with gradient overlay, right-side action buttons (heart, comment, share, music), and caption overlay at the bottom." />
+              <ContentTypeRow label="Google Business" desc="Google Business Profile layout with the Google G logo, post text, media, and the Call to Action rendered as a real button." />
+            </div>
+            <p className="text-gray-600 mt-3">Caption and hashtags appear inside the mockup. Supporting fields such as Hook, Script, and On-screen Text are shown below the mockup for reference.</p>
+          </div>
+          <Note text="Clients cannot see the Generate page, Briefs, other Clients, internal notes, or any admin/team functionality." />
         </SectionCard>
 
         {/* Calendar */}
@@ -157,7 +205,7 @@ export default function HelpPage() {
         </SectionCard>
 
         {/* Export */}
-        <SectionCard id="export" icon="Export" title="Export & Reports">
+        <SectionCard id="export" icon="Export" title="Export">
           <p>The <strong>Export</strong> page lets you download content data for reporting or handoff.</p>
           <Step n={1} text="Choose the client and month range you want to export." />
           <Step n={2} text='Click "Export CSV" to download a spreadsheet with all content items, statuses, captions, and media URLs.' />
