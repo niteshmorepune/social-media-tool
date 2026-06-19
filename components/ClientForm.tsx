@@ -64,7 +64,8 @@ export default function ClientForm({ client, teamMembers }: Props) {
 
   function toggleKeyword(kw: string) {
     const s = new Set(activeKeywords)
-    s.has(kw) ? s.delete(kw) : s.add(kw)
+    if (s.has(kw)) s.delete(kw)
+    else s.add(kw)
     set('brandKeywords', [...s].join(', '))
   }
 
