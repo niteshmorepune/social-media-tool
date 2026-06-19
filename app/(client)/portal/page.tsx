@@ -2,7 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { getStatusColor, getStatusLabel } from '@/lib/utils'
 import PortalApprovalActions from '@/components/PortalApprovalActions'
-import MediaDisplay from '@/components/MediaDisplay'
+import PlatformMockup from '@/components/PlatformMockup'
 
 export default async function PortalPage() {
   const session = await auth()
@@ -14,7 +14,7 @@ export default async function PortalPage() {
       }
     },
     include: {
-      brief:     { select: { title: true, scheduledMonth: true } },
+      brief:     { select: { title: true, scheduledMonth: true, client: { select: { name: true } } } },
       revisions: { orderBy: { createdAt: 'desc' }, take: 3, include: { requestedBy: { select: { name: true } } } }
     },
     orderBy: { createdAt: 'desc' }
@@ -71,11 +71,15 @@ export default async function PortalPage() {
                   </div>
                 </div>
 
-                {/* Generated media */}
-                <div className="px-6 pt-5">
-                  <MediaDisplay
-                    contentId={c.id}
+                {/* Platform mockup preview */}
+                <div className="bg-gray-50 px-6 py-6 border-b border-gray-100">
+                  <PlatformMockup
+                    platform={c.platform}
                     contentType={c.contentType}
+                    clientName={c.brief.client.name}
+                    caption={c.caption}
+                    hashtags={c.hashtags}
+                    callToAction={c.callToAction}
                     imageUrl={c.imageUrl}
                     videoUrl={c.videoUrl}
                     thumbnailUrl={c.thumbnailUrl}
@@ -84,14 +88,12 @@ export default async function PortalPage() {
                   />
                 </div>
 
-                {/* Text content */}
-                <div className="px-6 pb-5 space-y-4">
-                  {c.caption && <PortalField label="Caption" value={c.caption} />}
+                {/* Supporting text content */}
+                <div className="px-6 pb-5 space-y-4 pt-4">
                   {c.hook && <PortalField label="Hook (Opening)" value={c.hook} highlight />}
                   {c.copy && <PortalField label="Copy" value={c.copy} />}
                   {c.script && <PortalField label="Script" value={c.script} />}
                   {c.onScreenText && <PortalField label="On-Screen Text" value={c.onScreenText} />}
-                  {c.hashtags && <PortalField label="Hashtags" value={c.hashtags} accent />}
                   {c.callToAction && <PortalField label="Call to Action" value={c.callToAction} highlight />}
                   {c.duration && (
                     <p className="text-sm text-gray-500">
