@@ -66,10 +66,15 @@ export default function HelpPage() {
           <Step n={3} text="Write the Content Brief — what the posts should be about this month, key messages, tone, and any offers to highlight. This is the main prompt context for Claude." />
           <Step n={4} text='Save the brief. It will appear in the Briefs list with status "Draft".' />
           <Note text="Each platform row tracks its own post count. All posts for a platform are generated from the same brief but Claude uses a different angle, hook, and message for each — so a brief set to 8 Instagram posts will produce 8 distinct captions." />
+
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Viewing and reviewing posts from the brief</p>
-            <p className="text-gray-600 mb-3">Each generated post has a <strong>View →</strong> button. Clicking it opens a slide-over panel on the right — without leaving the brief — showing the full post: media preview, caption, copy, hashtags, revision notes, and all approval actions (Approve, Reject, Send to Client, Add Note). You can also set the post&apos;s scheduled date and retry failed media from inside the panel. Press <strong>Escape</strong> or click the backdrop to close it.</p>
+            <p className="text-gray-600 mb-3">Each generated post has a <strong>View →</strong> button. Clicking it opens a slide-over panel on the right — without leaving the brief — showing the full post: media preview, caption, copy, hashtags, revision thread, and all approval actions. You can also set the post&apos;s scheduled date and retry failed media from inside the panel. Press <strong>Escape</strong> or click the backdrop to close it.</p>
             <div className="space-y-3">
+              <div>
+                <p className="font-medium text-gray-800 mb-1">Caption character counter</p>
+                <p className="text-gray-600">The Caption field shows a live character counter in the top-right corner — e.g. <em>312 / 2,200</em>. The counter turns amber when you pass 80% of the platform limit and red with a ⚠ warning when you exceed it. Platform limits: Instagram &amp; TikTok 2,200 · LinkedIn 3,000 · Facebook 63,206 · Twitter 280 · Google Business 1,500.</p>
+              </div>
               <div>
                 <p className="font-medium text-gray-800 mb-1">Regenerate with Direction</p>
                 <p className="text-gray-600">At the bottom of the panel there is a <strong>Regenerate Text</strong> field. Type a direction — e.g. <em>&ldquo;make it shorter and punchier&rdquo;</em>, <em>&ldquo;focus on the discount offer&rdquo;</em>, <em>&ldquo;more emotional tone&rdquo;</em> — then click <strong>↺ Regenerate</strong>. This replaces only that single post with a new AI-generated version guided by your direction. All other posts in the platform are untouched. The direction is the top priority for Claude and overrides the brief and brand voice for that generation.</p>
@@ -78,16 +83,29 @@ export default function HelpPage() {
                 <p className="font-medium text-gray-800 mb-1">Internal Notes</p>
                 <p className="text-gray-600">Each post has an <strong>Internal Note</strong> field — an amber text area visible only to ADMIN and TEAM users. Use it for things like <em>&ldquo;client wants to post this on Tuesday&rdquo;</em> or <em>&ldquo;waiting for client photo&rdquo;</em>. Notes auto-save when you click away (no save button needed). Internal notes are <strong>never shown</strong> in the client portal.</p>
               </div>
+              <div>
+                <p className="font-medium text-gray-800 mb-1">Revision Thread</p>
+                <p className="text-gray-600">The <strong>Revision Thread</strong> section in the panel shows the full back-and-forth history with the client. Client comments appear in orange; team replies appear in blue. Use the reply box below the thread to send a message back to the client — it is added to the thread without changing the content status.</p>
+              </div>
             </div>
           </div>
+
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Collapsible platform sections</p>
             <p className="text-gray-600">On the brief detail page, each platform is shown as a collapsible card. Platforms where all planned posts have been generated are <strong>collapsed by default</strong> to keep the page tidy. Click the chevron (›) on any platform card to expand or collapse it.</p>
           </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Duplicating a brief to next month</p>
+            <p className="text-gray-600">Click <strong>Duplicate to next month</strong> in the brief header. A new brief is created with the same title, platforms, post counts, and brief text — but scheduled one calendar month ahead. No generated content is copied, so you can generate fresh posts for the new month from scratch. You are taken to the new brief immediately after duplication.</p>
+            <Tip text="Use duplication for recurring monthly retainer clients — duplicate last month's brief, update the Content Brief field with any new messaging, then generate." />
+          </div>
+
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Deleting a brief</p>
             <p className="text-gray-600">Click <strong>Delete Brief</strong> in the page header. You will be asked to confirm before anything is removed. Deleting a brief permanently removes it along with all its generated content, media, and revision history — this cannot be undone.</p>
           </div>
+
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Content Types explained</p>
             <div className="space-y-2">
@@ -134,8 +152,9 @@ export default function HelpPage() {
         </SectionCard>
 
         {/* Approvals */}
-        <SectionCard id="approvals" icon="Approvals" title="Approvals & Revisions">
+        <SectionCard id="approvals" icon="Approvals" title="Approvals &amp; Revisions">
           <p>The <strong>Approvals</strong> page shows all content awaiting a decision. Clients review via their own portal; you action their feedback here. The page loads <strong>20 posts at a time</strong> — use the Prev / Next buttons at the top and bottom to move between pages. Changing the status filter resets to page 1.</p>
+
           <div className="border-t border-gray-100 pt-3">
             <p className="font-medium text-gray-900 mb-2">Content statuses</p>
             <div className="space-y-2">
@@ -145,10 +164,33 @@ export default function HelpPage() {
               <StatusRow label="Rejected" color="bg-red-100 text-red-700" desc="Client rejected — regenerate or discuss." />
             </div>
           </div>
-          <Step n={1} text="When a client requests a revision, read their comment — either on this page or by clicking View → on the post from the brief detail page." />
-          <Step n={2} text="Go to Generate, find the content, and regenerate (or manually edit the caption if only text needs changing)." />
-          <Step n={3} text='Once updated, the status resets to "Pending" and the client is notified to review again.' />
-          <Tip text="You can approve, reject, or send content to the client directly from the View → panel on the brief detail page — no need to navigate to Approvals at all." />
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Bulk approvals</p>
+            <p className="text-gray-600 mb-2">You can approve or reject multiple posts at once without opening each one individually. A <strong>Select all pending</strong> checkbox appears above the content list whenever there are PENDING or REVISION_REQUESTED items on the current page.</p>
+            <Step n={1} text='Tick the "Select all pending" checkbox to select every eligible item on the page, or tick individual checkboxes on each card.' />
+            <Step n={2} text='A blue action bar appears showing how many items are selected. Click "✓ Approve N" or "✕ Reject N" to update all selected items at once.' />
+            <Step n={3} text="The page refreshes automatically and shows the updated statuses. Use the filter tabs to switch between views." />
+            <Tip text="Only PENDING and REVISION_REQUESTED posts can be bulk-selected. Already APPROVED or REJECTED posts do not show a checkbox." />
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Actioning individual revisions</p>
+            <Step n={1} text="When a client requests a revision, read their comment in the Revision Thread — either on this page or by clicking View → on the post from the brief detail page." />
+            <Step n={2} text="Go to Generate, find the content, and regenerate (or use Regenerate with Direction from the View → panel for a targeted tweak)." />
+            <Step n={3} text='Once updated, the status resets to "Pending" and the client can review again.' />
+            <Tip text="You can approve, reject, or send content to the client directly from the View → panel on the brief detail page — no need to navigate to Approvals at all." />
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Notification bell</p>
+            <p className="text-gray-600 mb-2">A bell icon at the bottom of the sidebar shows a red badge whenever a client takes action in the portal — approving a post or requesting a revision. Click the bell to see the last 20 notifications with the client name, platform, and brief title. All notifications are marked as read automatically when you open the panel.</p>
+            <div className="space-y-2">
+              <ContentTypeRow label="✅ Approved" desc="A client approved a specific post — no action usually needed." />
+              <ContentTypeRow label="✏️ Revision Requested" desc="A client left feedback on a post — check the Revision Thread and action it." />
+            </div>
+            <Note text="Notifications are routed to the team member assigned to that client. If no team member is assigned, all ADMIN users receive the notification." />
+          </div>
         </SectionCard>
 
         {/* Reports */}
@@ -170,6 +212,18 @@ export default function HelpPage() {
           <Step n={1} text='Create a CLIENT-role user via Team then "New Member" and assign them to the correct client.' />
           <Step n={2} text="Share their login credentials. They visit the site and log in — they land directly on the portal." />
           <Step n={3} text="In the portal, clients can Approve, Request Revision (with a comment), or Reject each content item." />
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Progress summary by brief</p>
+            <p className="text-gray-600 mb-2">Content in the portal is grouped by brief. Each brief has a <strong>progress card</strong> at the top showing:</p>
+            <div className="space-y-2">
+              <ContentTypeRow label="% Approved" desc="Large percentage figure — how many of the brief's posts the client has approved so far." />
+              <ContentTypeRow label="Progress bar" desc="A green bar that fills as posts are approved — easy visual confirmation of where things stand." />
+              <ContentTypeRow label="Status breakdown" desc="Pill badges showing how many posts are awaiting review, approved, or have revisions sent." />
+            </div>
+            <p className="text-gray-600 mt-3">The individual post cards appear below each brief header, indented with a left border so the grouping is clear.</p>
+          </div>
+
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Platform preview mockups</p>
             <p className="text-gray-600 mb-2">Instead of showing raw text and media, each post in the portal is displayed inside a <strong>platform-styled mockup</strong> — a realistic frame that resembles how the post will look on the actual platform. This helps clients visualise the final result and reduces back-and-forth over formatting questions.</p>
@@ -183,6 +237,22 @@ export default function HelpPage() {
             </div>
             <p className="text-gray-600 mt-3">Caption and hashtags appear inside the mockup. Supporting fields such as Hook, Script, and On-screen Text are shown below the mockup for reference.</p>
           </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Revision comment thread</p>
+            <p className="text-gray-600 mb-2">When a client requests a revision, the conversation doesn&apos;t have to end there. Both sides can continue adding messages to the thread:</p>
+            <div className="space-y-2">
+              <ContentTypeRow label="Client comments" desc="Shown in orange. When the client clicks 'Request Revision', their comment starts the thread. They can add more comments to a post already in revision — useful for clarifying feedback or confirming they've seen a team reply." />
+              <ContentTypeRow label="Team replies" desc="Shown in blue. From the View → panel on the brief detail page, the team reply box appears below the thread. Send a reply to let the client know what you changed or ask a clarifying question — without changing the post status." />
+            </div>
+            <Tip text="Use the thread to avoid email chains. All revision history is stored against the post and visible to any team member who opens it." />
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Downloading approved media</p>
+            <p className="text-gray-600">Once a post is <strong>Approved</strong>, download buttons appear below the content for any media that was generated — <em>Download Image</em>, <em>Download Video</em>, and <em>Download Thumbnail</em> (where applicable). Clicking a button downloads the file directly from Cloudinary with a descriptive filename. Clients can use these to save content for manual scheduling or handoff to a scheduler.</p>
+          </div>
+
           <Note text="Clients cannot see the Generate page, Briefs, other Clients, internal notes, or any admin/team functionality." />
         </SectionCard>
 
