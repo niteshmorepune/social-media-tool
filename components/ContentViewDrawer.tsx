@@ -6,12 +6,13 @@ import MediaDisplay from './MediaDisplay'
 import ApprovalActions from './ApprovalActions'
 import RegenerateMediaButton from './RegenerateMediaButton'
 import ScheduleDatePicker from './ScheduleDatePicker'
-import { getStatusColor, getStatusLabel } from '@/lib/utils'
+import { getStatusColor, getStatusLabel, CAPTION_LIMITS } from '@/lib/utils'
 
 interface Revision {
   id: string
   comment: string
-  requestedBy: { name: string }
+  createdAt?: string
+  requestedBy: { name: string; role: string }
 }
 
 interface Slide {
@@ -73,8 +74,11 @@ export default function ContentViewDrawer({
   const [direction, setDirection] = useState('')
   const [regenerating, setRegenerating] = useState(false)
   const [regenError, setRegenError] = useState('')
-  const [noteText, setNoteText] = useState('')
+  const [noteText, setNoteText]   = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
+  const [replyText, setReplyText] = useState('')
+  const [replying, setReplying]   = useState(false)
+  const [replyError, setReplyError] = useState('')
 
   // Track previous status/mediaStatus so we can re-fetch when they change while open
   const prevStatusRef = useRef(status)
@@ -271,12 +275,12 @@ export default function ContentViewDrawer({
                     slides={data.slides}
                   />
 
-                  {data.caption && <Field label="Caption" value={data.caption} />}
+                  {data.caption && <Field label="Caption" value={data.caption} charLimit={CAPTION_LIMITS[platform]} />}
                   {data.hook && <Field label="Hook (first 3 sec)" value={data.hook} />}
                   {data.copy && <Field label="Copy" value={data.copy} />}
                   {data.script && <Field label="Script" value={data.script} />}
                   {data.onScreenText && <Field label="On-screen Text" value={data.onScreenText} />}
-                  {data.hashtags && <Field label="Hashtags" value={data.hashtags} accent />}
+                  {data.hashtags && <Field label="Hashtags" value={data.hashtags} accent charLimit={platform === 'Twitter' ? CAPTION_LIMITS['Twitter'] : undefined} />}
                   {data.callToAction && <Field label="Call to Action" value={data.callToAction} />}
                   {data.imagePrompt && <Field label="Image Prompt" value={data.imagePrompt} muted />}
                   {data.videoConcept && <Field label="Video Concept" value={data.videoConcept} muted />}
@@ -302,16 +306,69 @@ export default function ContentViewDrawer({
                     </div>
                   )}
 
-                  {data.revisions.length > 0 && (
+                  {(data.revisions.length > 0 || data.status === 'REVISION_REQUESTED') && (
                     <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Revision Notes</p>
-                      <div className="space-y-2">
-                        {data.revisions.map(r => (
-                          <div key={r.id} className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2">
-                            <p className="text-xs font-medium text-yellow-800">{r.requestedBy.name}</p>
-                            <p className="text-sm text-yellow-900 mt-0.5">{r.comment}</p>
-                          </div>
-                        ))}
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Revision Thread</p>
+                      {data.revisions.length > 0 && (
+                        <div className="space-y-2 mb-3">
+                          {data.revisions.map(r => {
+                            const isClient = r.requestedBy.role === 'CLIENT'
+                            return (
+                              <div key={r.id} className={`rounded-lg px-3 py-2 border ${
+                                isClient
+                                  ? 'bg-orange-50 border-orange-100'
+                                  : 'bg-blue-50 border-blue-100'
+                              }`}>
+                                <p className={`text-xs font-medium ${isClient ? 'text-orange-700' : 'text-blue-700'}`}>
+                                  {r.requestedBy.name} {isClient ? '(Client)' : '(Team)'}
+                                </p>
+                                <p className={`text-sm mt-0.5 ${isClient ? 'text-orange-900' : 'text-blue-900'}`}>
+                                  {r.comment}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                      {/* Team reply box */}
+                      <div className="space-y-1.5">
+                        <textarea
+                          value={replyText}
+                          onChange={e => setReplyText(e.target.value)}
+                          rows={2}
+                          placeholder="Reply to client..."
+                          className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none bg-blue-50 placeholder-blue-300 text-gray-800"
+                          disabled={replying}
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={async () => {
+                              if (!replyText.trim()) return
+                              setReplyError('')
+                              setReplying(true)
+                              try {
+                                const res = await fetch(`/api/content/${contentId}/revisions`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ comment: replyText.trim() }),
+                                })
+                                if (!res.ok) throw new Error()
+                                const newRevision = await res.json()
+                                setData(d => d ? { ...d, revisions: [...d.revisions, newRevision] } : d)
+                                setReplyText('')
+                              } catch {
+                                setReplyError('Failed to send reply.')
+                              } finally {
+                                setReplying(false)
+                              }
+                            }}
+                            disabled={!replyText.trim() || replying}
+                            className="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+                          >
+                            {replying ? 'Sending...' : 'Send Reply'}
+                          </button>
+                          {replyError && <p className="text-xs text-red-500">{replyError}</p>}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -379,10 +436,24 @@ export default function ContentViewDrawer({
   )
 }
 
-function Field({ label, value, accent, muted }: { label: string; value: string; accent?: boolean; muted?: boolean }) {
+function Field({ label, value, accent, muted, charLimit }: {
+  label: string; value: string; accent?: boolean; muted?: boolean; charLimit?: number
+}) {
+  const count = value.length
+  const pct   = charLimit ? count / charLimit : 0
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{label}</p>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
+        {charLimit && (
+          <p className={`text-xs tabular-nums ${
+            pct > 1 ? 'text-red-500 font-semibold' : pct > 0.8 ? 'text-amber-500' : 'text-gray-400'
+          }`}>
+            {count.toLocaleString()} / {charLimit.toLocaleString()}
+            {pct > 1 && ' ⚠'}
+          </p>
+        )}
+      </div>
       <p className={`text-sm whitespace-pre-line rounded-lg px-3 py-2 ${
         accent ? 'text-blue-600 bg-blue-50' : muted ? 'text-gray-500 bg-gray-50 italic' : 'text-gray-800 bg-gray-50'
       }`}>

@@ -7,6 +7,7 @@ import BriefGenerateButton from '@/components/BriefGenerateButton'
 import BulkGenerateButton from '@/components/BulkGenerateButton'
 import ContentViewDrawer from '@/components/ContentViewDrawer'
 import DeleteBriefButton from '@/components/DeleteBriefButton'
+import DuplicateBriefButton from '@/components/DuplicateBriefButton'
 import CollapsiblePlatformCard from '@/components/CollapsiblePlatformCard'
 
 export default async function BriefDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,6 +48,7 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <DuplicateBriefButton briefId={brief.id} />
             <DeleteBriefButton briefId={brief.id} />
             <BulkGenerateButton
               platforms={brief.platforms.map(p => ({

@@ -13,7 +13,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params
   const { action, comment } = await req.json()
 
-  if (!['APPROVE', 'REQUEST_REVISION'].includes(action)) {
+  if (!['APPROVE', 'REQUEST_REVISION', 'COMMENT'].includes(action)) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   }
 
@@ -37,6 +37,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  // COMMENT — add to thread without changing status
+  if (action === 'COMMENT') {
+    if (!comment?.trim()) return NextResponse.json({ error: 'Comment required' }, { status: 400 })
+    const revision = await prisma.revision.create({
+      data: { contentId: id, requestedById: session.user.id, comment: comment.trim() },
+    })
+    return NextResponse.json(revision)
+  }
+
   const newStatus = action === 'APPROVE' ? 'APPROVED' : 'REVISION_REQUESTED'
 
   const updated = await prisma.content.update({
@@ -51,9 +60,35 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     })
   }
 
-  // Notify assigned team member
+  // Notify assigned team member (email + in-app)
   const client = content.brief.client
   const assignedId = client.assignedToId
+
+  // In-app notifications — notify assigned team member or all ADMIN users
+  const notifyUserIds: string[] = assignedId
+    ? [assignedId]
+    : (await prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      })).map(u => u.id)
+
+  if (notifyUserIds.length > 0) {
+    const notifTitle = action === 'APPROVE'
+      ? `${client.name} approved a post`
+      : `${client.name} requested a revision`
+    const notifMessage = `${content.platform} · ${content.brief.title}${comment ? ` — "${comment}"` : ''}`
+    await prisma.notification.createMany({
+      data: notifyUserIds.map(userId => ({
+        userId,
+        type:    action === 'APPROVE' ? 'APPROVED' : 'REVISION_REQUESTED',
+        title:   notifTitle,
+        message: notifMessage,
+        link:    '/approvals',
+      })),
+    }).catch(() => {})
+  }
+
+  // Email
   if (assignedId) {
     const teamMember = await prisma.user.findUnique({
       where: { id: assignedId },

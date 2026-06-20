@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
+import NotificationBell from './NotificationBell'
 
 const adminNav = [
   { href: '/dashboard',  label: 'Dashboard',    icon: HomeIcon },
@@ -83,6 +84,7 @@ export default function Sidebar({ role, userName }: Props) {
             <p className="text-xs text-gray-400">{role === 'ADMIN' ? 'Administrator' : 'Team Member'}</p>
           </div>
         </div>
+        <NotificationBell />
         <Link
           href="/settings"
           className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"

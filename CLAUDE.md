@@ -108,9 +108,13 @@ Accepts optional params beyond `briefPlatformId`:
 - `lib/cloudinary-client.ts` — Cloudinary config + `uploadFromUrl()`, server-only
 - `lib/media-generation.ts` — Full media pipeline orchestration; `runReplicate()` wrapper handles 429 retries
 - `components/GeneratingPoller.tsx` — Client component; polls `router.refresh()` every 5s when IMAGE/CAROUSEL is GENERATING
-- `components/ContentViewDrawer.tsx` — Client component; slide-over drawer on the brief detail page. Opens on "View →" click, fetches full content via `GET /api/content/[id]` on open (lazy — not baked into page HTML). Re-fetches automatically when `status`/`mediaStatus` props change after a `router.refresh()`. Includes all text fields, media preview, revision notes, ScheduleDatePicker, ApprovalActions, **Regenerate with Direction** footer (direction input + ↺ Regenerate button → calls `/api/generate` with `contentIdToReplace`), and **Internal Note** amber textarea (auto-saves on blur via `PATCH /api/content/[id]` with `{ internalNote }`). Slides in/out with CSS transitions. Props include `briefPlatformId` and `totalPosts` (needed for re-generation call).
+- `components/ContentViewDrawer.tsx` — Client component; slide-over drawer on the brief detail page. Opens on "View →" click, fetches full content via `GET /api/content/[id]` on open. Re-fetches automatically when `status`/`mediaStatus` props change after a `router.refresh()`. Includes all text fields, media preview, **Revision Thread** (role-coloured: client=orange, team=blue; team can reply via `POST /api/content/[id]/revisions`), ScheduleDatePicker, ApprovalActions, **Regenerate with Direction** footer, and **Internal Note** amber textarea (auto-saves on blur). Props include `briefPlatformId` and `totalPosts`.
 - `components/CollapsiblePlatformCard.tsx` — Client component; wraps each platform section on the brief detail page with a chevron toggle. Completed platforms (`existingCount >= postsCount`) default to collapsed.
 - `components/DeleteBriefButton.tsx` — Client component; inline confirm-then-delete for a brief. On success redirects to `/briefs`.
+- `components/DuplicateBriefButton.tsx` — Client component; duplicates a brief to next calendar month (POST /api/briefs/[id]/duplicate), then navigates to the new brief.
+- `components/NotificationBell.tsx` — Client component in Sidebar footer. Fetches `/api/notifications` on mount; shows unread badge; on click marks all read (PATCH) + opens fixed-position dropdown (left:272px, avoids sidebar overflow clipping). Notification type icons: ✅ APPROVED, ✏️ REVISION_REQUESTED. timeAgo helper for relative timestamps.
+- `components/ApprovalsContent.tsx` — Client component wrapping the approvals card list. Manages checkbox `Set<string>` state for eligible items (PENDING + REVISION_REQUESTED). Shows a bulk-action bar with "Approve N" and "Reject N" buttons; calls `PATCH /api/content/bulk` then `router.refresh()` via `useTransition`.
+- `components/PortalCommentBox.tsx` — Client component in portal; allows client to add a follow-up comment on REVISION_REQUESTED content without changing status (calls `PATCH /api/portal/content/[id]` with `{ action: 'COMMENT', comment }`).
 - `components/PlatformMockup.tsx` — Server component; renders content inside a platform-styled mockup frame. Used in the client portal. Switch on `platform` prop: Instagram, Facebook, LinkedIn, Twitter, TikTok, Google Business, Default. Uses `extractMediaProps()` helper to pass only the 6 media-relevant fields to inner `MockupMedia` component (avoids TypeScript excess-property errors from spread). Caption and hashtags embedded in mockup; other fields shown below.
 - `lib/utils.ts` — `PLATFORMS`, `CONTENT_GOALS`, `CAPTION_LIMITS`, `VIDEO_DURATIONS` + UI helpers
 - `prisma/schema.prisma` — Source of truth; no migrations, use `db:push`
@@ -127,10 +131,15 @@ GET/POST        /api/briefs
 GET/PUT/DELETE  /api/briefs/[id]        # DELETE cascades to all platforms, content, and revisions
 GET/POST        /api/clients
 GET/PUT/DELETE  /api/clients/[id]
-GET    /api/content/[id]               # fetch single content item with revisions (used by ContentViewDrawer)
+GET    /api/content/[id]               # fetch single content item with revisions (incl. requestedBy.role for thread coloring)
 PATCH  /api/content/[id]               # mode 1: status action; mode 2: { scheduledDate } update; mode 3: { internalNote } update (all detected by key presence)
 DELETE /api/content/[id]               # delete a single content item
-POST   /api/portal/content/[id]        # CLIENT role approval actions
+PATCH  /api/content/bulk               # bulk status update: { ids: string[], action: 'APPROVE'|'REJECT' }
+POST   /api/content/[id]/revisions     # team adds a comment to revision thread without changing status
+POST   /api/briefs/[id]/duplicate      # clone brief+platforms to next calendar month (no content cloned)
+GET    /api/notifications              # get last 20 notifications + unread count (ADMIN/TEAM only)
+PATCH  /api/notifications              # mark all notifications as read (ADMIN/TEAM only)
+PATCH  /api/portal/content/[id]        # CLIENT role: APPROVE | REQUEST_REVISION | COMMENT (COMMENT adds revision without status change)
 GET    /api/export                      # CSV export
 GET/POST /api/team                      # ADMIN only
 PATCH  /api/settings/password           # change own password
@@ -141,10 +150,11 @@ GET/PATCH /api/settings/profile         # get or update own name/email
 
 - **Brief form** — the `campaignDescription` DB field is labelled **"Content Brief"** in the UI (renamed from "Campaign Description" to avoid confusion). Section heading is "Brief Details" (was "Campaign Details").
 - **Help & Guide page** — `app/(admin)/help/page.tsx`, accessible to all ADMIN + TEAM roles at `/help`. Covers full workflow including Brand Voice Profile, Regenerate with Direction, Internal Notes, Platform Mockups, and the Reports page.
-- **Brief detail page** — platform sections are collapsible (chevron toggle). Completed platforms default to collapsed. "View →" on each post opens a slide-over drawer instead of navigating to Approvals. "Delete Brief" button with inline confirmation lives in the page header.
-- **Approvals page** — paginated at 20 items per page. `page` query param (default 1) is preserved alongside `status` filter in pagination links. Filter tab clicks always reset to page 1.
-- **Reports page** — `app/(admin)/reports/page.tsx`. Single Prisma `findMany` across all content, aggregated in JS. Shows: 4 stat cards (total, approval rate %, awaiting, avg days to approval), proportional status bar, per-client table, per-platform stacked bars, oldest-awaiting list (top 10 by updatedAt ASC in PENDING/REVISION, age coloured orange ≥3d / red ≥7d).
-- **Client portal** — posts rendered in `PlatformMockup` component instead of raw MediaDisplay. Caption and hashtags embedded inside the mockup frame; hook/script/CTA shown below as supporting text. Internal notes never exposed to CLIENT role.
+- **Brief detail page** — platform sections are collapsible (chevron toggle). Completed platforms default to collapsed. "View →" on each post opens a slide-over drawer. Header has: "Duplicate to next month" button (→ `/briefs/[newId]`), "Delete Brief" button (inline confirm), Bulk Generate button.
+- **Approvals page** — paginated at 20 items per page. Content list is rendered by `ApprovalsContent` client component which adds bulk-selection (checkboxes) with "Approve N / Reject N" bulk action bar. Only PENDING and REVISION_REQUESTED items are selectable. Server component keeps filter tabs and pagination.
+- **Reports page** — `app/(admin)/reports/page.tsx`. Single Prisma `findMany` across all content, aggregated in JS. Shows: 4 stat cards (total, approval rate %, awaiting, avg days to approval), proportional status bar, per-client table, per-platform stacked bars, oldest-awaiting list.
+- **Client portal** — content grouped by brief; each brief shows a progress card (% approved, progress bar, status breakdown). Posts use `PlatformMockup` frame. Revision thread is role-coloured: client comments orange, team replies blue. Client can add follow-up comments on REVISION_REQUESTED content via `PortalCommentBox`. Approved content with media shows download links (Cloudinary `fl_attachment`). Internal notes never exposed to CLIENT role.
+- **Notifications** — `NotificationBell` in Sidebar footer; triggered when client approves/requests revision via portal. Routes to assigned team member or falls back to all ADMIN users. Fixed-position dropdown (left:272px) avoids sidebar `overflow-y-auto` clipping.
 - **Brand Voice Profile** — `Client` form (`components/ClientForm.tsx`) has a "Brand Voice Profile" section at the bottom with tone keyword chips (15 presets + free text), Always Do / Never Do textareas, competitors field, and hashtags field. Toggle logic uses `Set` with `if/else` (not ternary expression — ESLint `no-unused-expressions` blocks that pattern).
 
 ### Hydration Warnings

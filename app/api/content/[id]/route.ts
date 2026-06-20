@@ -10,7 +10,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const { id } = await params
   const content = await prisma.content.findUnique({
     where: { id },
-    include: { revisions: { include: { requestedBy: { select: { name: true } } }, orderBy: { createdAt: 'desc' } } }
+    include: { revisions: { include: { requestedBy: { select: { name: true, role: true } } }, orderBy: { createdAt: 'asc' } } }
   })
 
   if (!content) return NextResponse.json({ error: 'Not found' }, { status: 404 })
