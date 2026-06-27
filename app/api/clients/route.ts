@@ -20,14 +20,22 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await auth()
-  if (!session || session.user.role === 'CLIENT') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Allow server-to-server calls from the NEDS CRM (deal won → provision client).
+  // The key must match SMDOST_SERVICE_KEY in the CRM and SMDOST_SERVICE_KEY here.
+  const serviceKey = req.headers.get('x-service-key')
+  const isServiceCall = serviceKey && serviceKey === process.env.SMDOST_SERVICE_KEY
+
+  if (!isServiceCall) {
+    const session = await auth()
+    if (!session || session.user.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
   }
 
   const body = await req.json()
   const { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId,
-          brandKeywords, contentDos, contentDonts, competitorsToAvoid, preferredHashtags } = body
+          brandKeywords, contentDos, contentDonts, competitorsToAvoid, preferredHashtags,
+          drishtiClientId } = body
 
   if (!name || !industry || !brandTone || !targetAudience) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -35,7 +43,8 @@ export async function POST(req: Request) {
 
   const client = await prisma.client.create({
     data: { name, industry, brandTone, targetAudience, logoUrl, website, primaryColor, assignedToId,
-            brandKeywords, contentDos, contentDonts, competitorsToAvoid, preferredHashtags }
+            brandKeywords, contentDos, contentDonts, competitorsToAvoid, preferredHashtags,
+            drishtiClientId: drishtiClientId ?? null }
   })
 
   return NextResponse.json(client, { status: 201 })

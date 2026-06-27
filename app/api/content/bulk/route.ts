@@ -1,6 +1,7 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { checkAndFireBriefApproved } from '@/lib/crm-webhook'
 
 export async function PATCH(req: Request) {
   const session = await auth()
@@ -23,6 +24,17 @@ export async function PATCH(req: Request) {
     where: { id: { in: ids } },
     data: { status: newStatus as 'APPROVED' | 'REJECTED' },
   })
+
+  // After bulk approve, check each affected brief for full completion.
+  if (action === 'APPROVE') {
+    const affectedBriefs = await prisma.brief.findMany({
+      where: { content: { some: { id: { in: ids } } } },
+      select: { id: true, clientId: true },
+    })
+    for (const brief of affectedBriefs) {
+      checkAndFireBriefApproved(brief.id, brief.clientId).catch(() => null)
+    }
+  }
 
   return NextResponse.json({ updated: result.count })
 }

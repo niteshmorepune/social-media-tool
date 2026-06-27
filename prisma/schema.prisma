@@ -67,6 +67,9 @@ model Client {
   contentDonts       String? @db.Text
   competitorsToAvoid String? @db.Text
   preferredHashtags  String? @db.Text
+  // nedsdrishti.in client ID — set by CRM on deal won so approved content can
+  // be pushed directly to Drishti for scheduling without going through the CRM.
+  drishtiClientId    String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { sendEmail, contentReadyEmail } from '@/lib/email'
+import { checkAndFireBriefApproved } from '@/lib/crm-webhook'
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -87,6 +88,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await prisma.revision.create({
       data: { contentId: id, requestedById: session.user.id, comment }
     })
+  }
+
+  // When team marks as approved, check if the whole brief is now done
+  // and notify the CRM to create a draft invoice. Fire-and-forget.
+  if (action === 'APPROVE') {
+    checkAndFireBriefApproved(content.briefId, content.brief.client.id).catch(() => null)
   }
 
   return NextResponse.json(content)

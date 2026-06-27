@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { sendEmail, approvedEmail, revisionRequestedEmail } from '@/lib/email'
+import { checkAndFireBriefApproved } from '@/lib/crm-webhook'
 
 // Client portal: approve or request revision
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -104,6 +105,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         await sendEmail({ to: teamMember.email, subject, html }).catch(() => {})
       }
     }
+  }
+
+  // When client approves, check if the whole brief is now fully approved
+  // and notify the CRM to create a draft invoice. Fire-and-forget.
+  if (action === 'APPROVE') {
+    checkAndFireBriefApproved(content.briefId, content.brief.client.id).catch(() => null)
   }
 
   return NextResponse.json(updated)
