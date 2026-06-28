@@ -2,7 +2,7 @@ import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import PortalLogoutButton from '@/components/PortalLogoutButton'
 
-export default async function ClientLayout({ children }: { children: React.ReactNode }) {
+export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
   if (!session) redirect('/login')
   if (session.user.role !== 'CLIENT') redirect('/dashboard')
