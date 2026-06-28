@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN rm -f package-lock.json && npm install
+RUN rm -f package-lock.json && npm install --legacy-peer-deps
 
 COPY . .
 
