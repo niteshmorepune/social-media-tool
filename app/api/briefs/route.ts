@@ -22,9 +22,25 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await auth()
-  if (!session || session.user.role === 'CLIENT') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Allow server-to-server calls from NEDS CRM (monthly brief auto-creation).
+  // The key must match SMDOST_SERVICE_KEY in the CRM and here.
+  const serviceKey = req.headers.get('x-service-key')
+  const isServiceCall = serviceKey && serviceKey === process.env.SMDOST_SERVICE_KEY
+
+  let createdById: string
+
+  if (isServiceCall) {
+    const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
+    if (!admin) {
+      return NextResponse.json({ error: 'No admin user configured' }, { status: 500 })
+    }
+    createdById = admin.id
+  } else {
+    const session = await auth()
+    if (!session || session.user.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    createdById = session.user.id
   }
 
   const body = await req.json()
@@ -42,12 +58,12 @@ export async function POST(req: Request) {
       campaignDescription,
       specialInstructions,
       scheduledMonth: new Date(scheduledMonth),
-      createdById: session.user.id,
+      createdById,
       platforms: {
         create: platforms.map((p: { platform: string; contentType: string; postsCount?: number }) => ({
-          platform:   p.platform,
+          platform:    p.platform,
           contentType: p.contentType,
-          postsCount: p.postsCount ?? 1
+          postsCount:  p.postsCount ?? 1
         }))
       }
     },
