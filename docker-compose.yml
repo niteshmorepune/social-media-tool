@@ -32,9 +32,6 @@ services:
       - "traefik.http.routers.social-media-tool.tls.certresolver=myhttpchallenge"
       - "traefik.http.services.social-media-tool.loadbalancer.server.port=3000"
       - "traefik.docker.network=root_default"
-      - "traefik.http.middlewares.smt-decodepath.replacePathRegex.regex=^(.*)"
-      - "traefik.http.middlewares.smt-decodepath.replacePathRegex.replacement=$$1"
-      - "traefik.http.routers.social-media-tool.middlewares=smt-decodepath@docker"
 
   db:
     image: mysql:8.0
