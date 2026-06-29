@@ -2,7 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { sendEmail, contentReadyEmail } from '@/lib/email'
-import { checkAndFireBriefApproved } from '@/lib/crm-webhook'
+import { checkAndFireBriefApproved, fireContentReady } from '@/lib/crm-webhook'
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -47,20 +47,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json(updated)
   }
 
-  const validActions = ['APPROVE', 'REJECT', 'SEND_TO_CLIENT']
+  const validActions = ['APPROVE', 'REJECT', 'SEND_TO_CLIENT', 'SEND_TO_AGENCY']
   if (!validActions.includes(action)) {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   }
 
   const statusMap: Record<string, string> = {
-    APPROVE:        'APPROVED',
-    REJECT:         'REJECTED',
-    SEND_TO_CLIENT: 'PENDING'
+    APPROVE:         'APPROVED',
+    REJECT:          'REJECTED',
+    SEND_TO_CLIENT:  'PENDING',
+    SEND_TO_AGENCY:  'SENT_TO_AGENCY',
   }
 
   const content = await prisma.content.update({
     where: { id },
-    data: { status: statusMap[action] as 'APPROVED' | 'REJECTED' | 'PENDING' },
+    data: { status: statusMap[action] as 'APPROVED' | 'REJECTED' | 'PENDING' | 'SENT_TO_AGENCY' },
     include: {
       brief: {
         include: {
@@ -94,6 +95,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // and notify the CRM to create a draft invoice. Fire-and-forget.
   if (action === 'APPROVE') {
     checkAndFireBriefApproved(content.briefId, content.brief.client.id).catch(() => null)
+  }
+
+  // When copy is ready to go to the partner agency for creative, notify the CRM
+  // so it can create a content piece and let the team generate an upload link.
+  if (action === 'SEND_TO_AGENCY') {
+    const copyText = [
+      content.caption && `Caption: ${content.caption}`,
+      content.copy && `Copy: ${content.copy}`,
+      content.hook && `Hook: ${content.hook}`,
+      content.script && `Script: ${content.script}`,
+      content.imagePrompt && `Image prompt: ${content.imagePrompt}`,
+    ].filter(Boolean).join('\n\n') || '(No copy provided)'
+
+    fireContentReady(
+      content.brief.client.id,
+      content.id,
+      content.platform,
+      content.brief.title,
+      copyText,
+      content.scheduledDate,
+    ).catch(() => null)
   }
 
   return NextResponse.json(content)

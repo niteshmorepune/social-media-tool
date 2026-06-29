@@ -44,6 +44,40 @@ export async function checkAndFireBriefApproved(
 }
 
 /**
+ * Notify the CRM that a content piece's copy is ready to go to the partner
+ * agency for creative (images/video). The CRM creates a neds_led ContentPiece
+ * (status: sent_to_partner) so the team can track it and generate an upload link.
+ */
+export async function fireContentReady(
+  smdostClientId: string,
+  contentId: string,
+  platform: string,
+  briefTitle: string,
+  copyText: string,
+  scheduledDate?: Date | null,
+): Promise<void> {
+  if (!CRM_WEBHOOK_URL || !SERVICE_KEY) return
+
+  const url = `${CRM_WEBHOOK_URL}/api/webhooks/smdost/content-ready`
+
+  await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SERVICE_KEY}`,
+    },
+    body: JSON.stringify({
+      smdost_client_id: smdostClientId,
+      smdost_content_id: contentId,
+      platform,
+      title: `${briefTitle} – ${platform}`,
+      copy_text: copyText,
+      publish_date: scheduledDate ? scheduledDate.toISOString().slice(0, 10) : null,
+    }),
+  })
+}
+
+/**
  * Notify the CRM that all content in a brief has been approved.
  * The CRM will create a draft invoice and alert the accounts team.
  */

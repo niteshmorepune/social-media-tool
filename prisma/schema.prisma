@@ -20,6 +20,7 @@ enum ContentStatus {
   APPROVED
   REJECTED
   REVISION_REQUESTED
+  SENT_TO_AGENCY
 }
 
 enum ContentType {
