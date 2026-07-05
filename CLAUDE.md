@@ -39,15 +39,18 @@ npm run db:seed        # seed admin user: admin@yourdomain.com / admin123
 
 ## Architecture
 
-### Route Groups & Roles
+### Routes & Roles
 
-Three route groups enforced by `middleware.ts`:
+Route groups (`(admin)`, `(auth)`, `(client)`) were **eliminated** — Traefik v3 cannot proxy paths containing percent-encoded parentheses (`%28`, `%29`), causing Next.js chunk files to 404. Pages now live at flat paths:
 
-- `app/(admin)/` — ADMIN + TEAM roles: full dashboard
-- `app/(auth)/` — unauthenticated: login only
-- `app/(client)/portal/` — CLIENT role only: approval portal
+- `app/login/` — unauthenticated login page
+- `app/dashboard/`, `app/briefs/`, `app/approvals/`, `app/clients/`, `app/team/`, `app/reports/`, `app/export/`, `app/generate/`, `app/calendar/`, `app/help/`, `app/settings/` — ADMIN + TEAM (guarded by `AdminShell`)
+- `app/portal/` — CLIENT role only (guarded by `app/portal/layout.tsx`)
+- `app/sso/` — SSO entry point from CRM
 
-Three roles: `ADMIN`, `TEAM`, `CLIENT`. Only ADMIN can access `/team`. All API routes call `auth()` directly — middleware only protects pages.
+Auth is enforced by **`components/AdminShell.tsx`** — an async server component that calls `auth()`, redirects unauthenticated users to `/login` and CLIENT users to `/portal`, then renders the sidebar layout. Each admin section has a `layout.tsx` that simply re-exports `AdminShell`. `middleware.ts` remains but route protection is primarily done in AdminShell and portal layout.
+
+Three roles: `ADMIN`, `TEAM`, `CLIENT`. Only ADMIN can access `/team`. All API routes call `auth()` directly.
 
 ### Data Model
 
@@ -100,7 +103,8 @@ Accepts optional params beyond `briefPlatformId`:
 ### Key Files
 
 - `auth.ts` — NextAuth v5, Credentials provider + JWT, `trustHost: true` (required behind reverse proxy)
-- `middleware.ts` — Edge middleware, route protection
+- `middleware.ts` — Edge middleware, route protection (secondary; primary auth guard is AdminShell)
+- `components/AdminShell.tsx` — Async server component; auth guard + sidebar layout for all admin pages. Each admin section's `layout.tsx` re-exports this.
 - `lib/prisma.ts` — Singleton Prisma client (globalThis pattern for HMR safety)
 - `lib/claude.ts` — Anthropic client singleton, server-only
 - `lib/runway-client.ts` — Lazy RunwayML getter `getRunway()`, server-only
@@ -149,10 +153,10 @@ GET/PATCH /api/settings/profile         # get or update own name/email
 ### UI / Naming Notes
 
 - **Brief form** — the `campaignDescription` DB field is labelled **"Content Brief"** in the UI (renamed from "Campaign Description" to avoid confusion). Section heading is "Brief Details" (was "Campaign Details").
-- **Help & Guide page** — `app/(admin)/help/page.tsx`, accessible to all ADMIN + TEAM roles at `/help`. Covers full workflow including Brand Voice Profile, Regenerate with Direction, Internal Notes, Platform Mockups, and the Reports page.
+- **Help & Guide page** — `app/help/page.tsx`, accessible to all ADMIN + TEAM roles at `/help`. Covers full workflow including Brand Voice Profile, Regenerate with Direction, Internal Notes, Platform Mockups, and the Reports page.
 - **Brief detail page** — platform sections are collapsible (chevron toggle). Completed platforms default to collapsed. "View →" on each post opens a slide-over drawer. Header has: "Duplicate to next month" button (→ `/briefs/[newId]`), "Delete Brief" button (inline confirm), Bulk Generate button.
 - **Approvals page** — paginated at 20 items per page. Content list is rendered by `ApprovalsContent` client component which adds bulk-selection (checkboxes) with "Approve N / Reject N" bulk action bar. Only PENDING and REVISION_REQUESTED items are selectable. Server component keeps filter tabs and pagination.
-- **Reports page** — `app/(admin)/reports/page.tsx`. Single Prisma `findMany` across all content, aggregated in JS. Shows: 4 stat cards (total, approval rate %, awaiting, avg days to approval), proportional status bar, per-client table, per-platform stacked bars, oldest-awaiting list.
+- **Reports page** — `app/reports/page.tsx`. Single Prisma `findMany` across all content, aggregated in JS. Shows: 4 stat cards (total, approval rate %, awaiting, avg days to approval), proportional status bar, per-client table, per-platform stacked bars, oldest-awaiting list.
 - **Client portal** — content grouped by brief; each brief shows a progress card (% approved, progress bar, status breakdown). Posts use `PlatformMockup` frame. Revision thread is role-coloured: client comments orange, team replies blue. Client can add follow-up comments on REVISION_REQUESTED content via `PortalCommentBox`. Approved content with media shows download links (Cloudinary `fl_attachment`). Internal notes never exposed to CLIENT role.
 - **Notifications** — `NotificationBell` in Sidebar footer; triggered when client approves/requests revision via portal. Routes to assigned team member or falls back to all ADMIN users. Fixed-position dropdown (left:272px) avoids sidebar `overflow-y-auto` clipping.
 - **Brand Voice Profile** — `Client` form (`components/ClientForm.tsx`) has a "Brand Voice Profile" section at the bottom with tone keyword chips (15 presets + free text), Always Do / Never Do textareas, competitors field, and hashtags field. Toggle logic uses `Set` with `if/else` (not ternary expression — ESLint `no-unused-expressions` blocks that pattern).
@@ -177,7 +181,7 @@ Browser extensions cause React hydration mismatches. Pattern: `suppressHydration
 
 ### Stack
 - **Traefik** reverse proxy with HTTP-01 ACME (`myhttpchallenge` resolver, certs in `traefik_data` Docker volume)
-- **App** container built from `Dockerfile` — runs `rm -f package-lock.json && npm install` to avoid Windows lock file missing Linux musl binaries
+- **App** container built from `Dockerfile` — runs `rm -f package-lock.json && npm install --legacy-peer-deps` (next-auth beta.25 has peer dep on nodemailer@^6 but project uses @^7)
 - **MySQL 8.0** in separate container, `social-media-tool_mysql_data` volume
 - Both join `root_default` external network (shared with n8n/Traefik at `/root/docker-compose.yml`)
 
@@ -200,6 +204,8 @@ docker compose exec app npx prisma db push
 ### Docker build notes
 - `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_APP_NAME` are hardcoded in `Dockerfile` as `ENV` (baked at build time)
 - `package-lock.json` is deleted before `npm install` in Docker — Windows lock file omits `linux-x64-musl` optional binaries (lightningcss, etc.)
+- `next-auth` is pinned to exact version `5.0.0-beta.25` (no caret) — beta.31 has broken CSRF behavior; Docker reinstall must not upgrade it
 - Container start command is `npx next start` (not `node server.js` — standalone output is not enabled)
 - If VPS branch diverges from GitHub: `git fetch origin && git reset --hard origin/master` then rebuild
 - If Traefik fails ACME with 500 and a stale IP: clear the `socialmediadost.com` entry from `acme.json` in `traefik_data` volume and restart Traefik
+- **Duplicate container warning:** Never run a second copy of the app from another directory (e.g. `/root/social-media-dost/`). If two containers both have Traefik labels for `socialmediadost.com`, Traefik load-balances between them → HTML/chunk version mismatch → ChunkLoadError on every other request. Check with `docker ps | grep social` if the site shows intermittent "Application error".
