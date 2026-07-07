@@ -7,9 +7,11 @@ export default auth((req) => {
   const role = session?.user?.role
 
   // Public routes — always accessible
-  if (pathname === '/login') {
-    // Redirect already-logged-in users to their home
-    if (session) {
+  if (pathname === '/login' || pathname === '/sso') {
+    // /sso is the cross-portal SSO handoff — it must be reachable without an
+    // existing session, since its whole job is to establish one from a
+    // one-time token. Only /login redirects an already-authenticated user away.
+    if (pathname === '/login' && session) {
       if (role === 'CLIENT') return NextResponse.redirect(new URL('/portal', req.url))
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
