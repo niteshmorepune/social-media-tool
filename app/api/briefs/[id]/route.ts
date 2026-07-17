@@ -30,6 +30,11 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   }
 
   const { id } = await params
-  await prisma.brief.delete({ where: { id } })
+  try {
+    await prisma.brief.delete({ where: { id } })
+  } catch (err) {
+    console.error('Failed to delete brief', id, err)
+    return NextResponse.json({ error: 'Failed to delete brief' }, { status: 500 })
+  }
   return NextResponse.json({ success: true })
 }

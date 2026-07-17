@@ -129,7 +129,11 @@ export default function ClientForm({ client, teamMembers }: Props) {
     if (res.ok) {
       router.push('/clients')
       router.refresh()
+      return
     }
+
+    const data = await res.json().catch(() => null)
+    setError(data?.error ?? 'Delete failed — try again.')
   }
 
   return (

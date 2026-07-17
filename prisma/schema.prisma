@@ -160,7 +160,7 @@ model Content {
   updatedAt DateTime @updatedAt
 
   brief         Brief         @relation(fields: [briefId], references: [id], onDelete: Cascade)
-  briefPlatform BriefPlatform @relation(fields: [briefPlatformId], references: [id])
+  briefPlatform BriefPlatform @relation(fields: [briefPlatformId], references: [id], onDelete: Cascade)
   revisions     Revision[]
 
   @@index([briefId])

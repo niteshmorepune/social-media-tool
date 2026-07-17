@@ -48,6 +48,11 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   }
 
   const { id } = await params
-  await prisma.client.delete({ where: { id } })
+  try {
+    await prisma.client.delete({ where: { id } })
+  } catch (err) {
+    console.error('Failed to delete client', id, err)
+    return NextResponse.json({ error: 'Failed to delete client' }, { status: 500 })
+  }
   return NextResponse.json({ success: true })
 }

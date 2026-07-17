@@ -52,8 +52,8 @@ export async function GET(req: Request) {
     }
 
     const rows = content.map(c => [
-      c.brief.client.name,
-      c.brief.title,
+      escCsv(c.brief.client.name),
+      escCsv(c.brief.title),
       c.platform,
       c.contentType,
       c.status,
