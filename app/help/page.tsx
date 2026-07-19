@@ -112,6 +112,24 @@ export default function HelpPage() {
               <ContentTypeRow label="Image" desc="Single static image with caption. Generated via Flux-1.1-pro." />
               <ContentTypeRow label="Video" desc="AI generates a 10-second silent visual clip (RunwayML Gen-3 Turbo maximum). The script and duration field guide Claude on concept and pacing for the full video — a human editor assembles the final cut. No voiceover is added automatically." />
               <ContentTypeRow label="Carousel" desc="Multi-slide post. Each slide gets its own image — generation takes longer." />
+              <ContentTypeRow label="Ad Copy" desc="Paid-ad text for Meta Ads or Google Ads — see the dedicated section below. No media is generated for this type." />
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Ad Copy — Meta Ads &amp; Google Ads</p>
+            <p className="text-gray-600 mb-3"><strong>Meta Ads</strong> and <strong>Google Ads</strong> are separate platform entries lower down the platform list — they only offer the <strong>Ad Copy</strong> toggle, since paid-ad text has no image/video/carousel format. This tool only generates the copy text; nothing is submitted to Meta Ads Manager or Google Ads automatically — the team copy-pastes the result in themselves.</p>
+            <Step n={1} text='Toggle "Ad Copy" under Meta Ads and/or Google Ads. Each one you select adds a Landing Page URL field to the selected-platforms list below — enter the page the ad should point to.' />
+            <Step n={2} text='Set "Ad variants" (the same − / + control used for post counts elsewhere). For Meta, each variant is one complete ad (primary text, headline, description, call-to-action). For Google, each variant is one complete Responsive Search Ad — a pool of headlines and descriptions Google itself mixes and matches, not separate ads.' />
+            <Step n={3} text="Generate as usual. Open a generated ad with View → to review it." />
+            <div className="mt-3">
+              <p className="font-medium text-gray-800 mb-1">Policy Check panel</p>
+              <p className="text-gray-600 mb-2">Every generated ad shows a Policy Check panel at the top of the View → drawer, checked automatically against Meta and Google&apos;s actual advertising policies:</p>
+              <div className="space-y-2">
+                <StatusRow label="Will likely be rejected" color="bg-red-100 text-red-700" desc="A Google hard limit was exceeded (e.g. a description over 90 characters) — Google's own ad builder will not accept this text as written." />
+                <StatusRow label="Amber warning" color="bg-amber-100 text-amber-700" desc="A Meta soft/recommended limit was exceeded, or the copy may run into Meta's Personal Attributes policy (implying the reader has a specific health, financial, or other protected attribute) — worth a second look, not a guaranteed rejection." />
+              </div>
+              <Note text="Policy Check is always advisory — it never blocks saving or silently edits the AI's draft. The team makes the final call, exactly like every other AI-assisted draft in this tool." />
             </div>
           </div>
         </SectionCard>
@@ -139,6 +157,7 @@ export default function HelpPage() {
             <p className="text-gray-600">The <strong>Generate All</strong> button on a brief generates text for every platform one at a time, respecting each platform&apos;s post count. The button shows live progress — <em>Generating post 3 of 12...</em> — and each post appears on screen as soon as it is ready. No media is started. Once you are happy with the text on a row, click its <strong>Generate Media</strong> button. To generate text and media together for all platforms at once, click the chevron next to the button and choose <strong>Generate All with Media</strong>.</p>
           </div>
           <Note text="Video generation (RunwayML) runs asynchronously and may take 1–3 minutes after you click Generate Media. The status updates automatically — no need to refresh. The AI clip is always 10 seconds; voiceover and final assembly are done outside this tool." />
+          <Note text='Ad Copy (Meta Ads / Google Ads) skips the media step entirely — there is no image or video to generate, so once its text is generated the button simply offers "Regenerate All".' />
           <Tip text="If a media job fails (red indicator), use Media only from the dropdown to re-run only the media pipeline without re-generating text." />
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Media status indicators</p>
