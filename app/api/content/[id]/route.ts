@@ -106,6 +106,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       content.hook && `Hook: ${content.hook}`,
       content.script && `Script: ${content.script}`,
       content.imagePrompt && `Image prompt: ${content.imagePrompt}`,
+      content.adPrimaryText && `Primary Text: ${content.adPrimaryText}`,
+      content.adHeadline && `Headline: ${content.adHeadline}`,
+      content.adDescription && `Description: ${content.adDescription}`,
+      content.adHeadlines && `Headlines: ${(content.adHeadlines as string[]).join(' | ')}`,
+      content.adDescriptions && `Descriptions: ${(content.adDescriptions as string[]).join(' | ')}`,
     ].filter(Boolean).join('\n\n') || '(No copy provided)'
 
     fireContentReady(

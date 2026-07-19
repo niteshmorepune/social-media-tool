@@ -17,6 +17,11 @@ interface Props {
   thumbnailUrl: string | null
   mediaStatus: string
   slides: Slide[] | null
+  adPrimaryText?: string | null
+  adHeadline?: string | null
+  adDescription?: string | null
+  adHeadlines?: string[] | null
+  adDescriptions?: string[] | null
 }
 
 interface MediaProps {
@@ -403,6 +408,44 @@ function GoogleBusinessMockup(props: Props) {
   )
 }
 
+// Ad copy is reviewed as plain text, not a simulated social feed post — this
+// renders regardless of platform (Meta Ads vs Google Ads) since the shape of
+// the two differs (single variant vs a headline/description pool).
+function AdCopyMockup(props: Props) {
+  const isGoogle = props.platform === 'Google Ads'
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-lg mx-auto shadow-sm">
+      <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
+        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{props.platform} · Ad Copy</span>
+      </div>
+      <div className="px-4 py-4 space-y-3">
+        {!isGoogle && (
+          <>
+            {props.adPrimaryText && <p className="text-sm text-gray-800 leading-relaxed">{props.adPrimaryText}</p>}
+            {props.adHeadline && <p className="text-sm font-semibold text-gray-900">{props.adHeadline}</p>}
+            {props.adDescription && <p className="text-xs text-gray-500">{props.adDescription}</p>}
+            {props.callToAction && (
+              <button className="mt-1 px-3 py-1.5 border border-blue-600 text-blue-600 text-xs font-medium rounded-lg">
+                {props.callToAction}
+              </button>
+            )}
+          </>
+        )}
+        {isGoogle && (
+          <>
+            {props.adHeadlines && props.adHeadlines.length > 0 && (
+              <p className="text-sm font-semibold text-blue-700">{props.adHeadlines.slice(0, 3).join(' | ')}</p>
+            )}
+            {props.adDescriptions && props.adDescriptions.length > 0 && (
+              <p className="text-xs text-gray-600">{props.adDescriptions.slice(0, 2).join(' ')}</p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function DefaultMockup(props: Props) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-lg mx-auto shadow-sm">
@@ -426,6 +469,7 @@ function DefaultMockup(props: Props) {
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export default function PlatformMockup(props: Props) {
+  if (props.contentType === 'AD_COPY') return <AdCopyMockup {...props} />
   switch (props.platform) {
     case 'Instagram':       return <InstagramMockup      {...props} />
     case 'Facebook':        return <FacebookMockup       {...props} />

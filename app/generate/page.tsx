@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import BriefGenerateButton from '@/components/BriefGenerateButton'
 import ClientAvatar from '@/components/ClientAvatar'
-import { getStatusColor, getStatusLabel, formatMonth } from '@/lib/utils'
+import { getStatusColor, getStatusLabel, formatMonth, contentTypeLabel } from '@/lib/utils'
 
 export default async function GeneratePage({
   searchParams
@@ -126,7 +126,7 @@ export default async function GeneratePage({
                       <div className="flex items-center gap-4 min-w-0">
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900">{p.platform}</p>
-                          <p className="text-xs text-gray-500">{p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()}</p>
+                          <p className="text-xs text-gray-500">{contentTypeLabel(p.contentType)}</p>
                         </div>
                         <div className="hidden sm:flex items-center gap-3 min-w-0">
                           {/* Post count badge */}
@@ -154,6 +154,7 @@ export default async function GeneratePage({
                       <BriefGenerateButton
                         briefPlatformId={p.id}
                         postsCount={postsCount}
+                        contentType={p.contentType}
                         contentItems={p.content.map(c => ({
                           id:          c.id,
                           mediaStatus: c.mediaStatus,

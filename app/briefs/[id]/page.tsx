@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { formatMonth, getStatusColor, getStatusLabel } from '@/lib/utils'
+import { formatMonth, getStatusColor, getStatusLabel, contentTypeLabel } from '@/lib/utils'
 import BriefGenerateButton from '@/components/BriefGenerateButton'
 import BulkGenerateButton from '@/components/BulkGenerateButton'
 import ContentViewDrawer from '@/components/ContentViewDrawer'
@@ -100,7 +100,7 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
                   <div>
                     <p className="font-medium text-gray-900">{p.platform}</p>
                     <p className="text-sm text-gray-500">
-                      {p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()}
+                      {contentTypeLabel(p.contentType)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -116,6 +116,7 @@ export default async function BriefDetailPage({ params }: { params: Promise<{ id
                     <BriefGenerateButton
                       briefPlatformId={p.id}
                       postsCount={postsCount}
+                      contentType={p.contentType}
                       contentItems={p.content.map(c => ({
                         id:          c.id,
                         mediaStatus: c.mediaStatus,

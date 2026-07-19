@@ -68,6 +68,16 @@ User → Notification
 - Regenerating a BriefPlatform deletes its existing Content row first
 - `Client` has 5 Brand Voice Profile fields (all nullable Text): `brandKeywords`, `contentDos`, `contentDonts`, `competitorsToAvoid`, `preferredHashtags` — injected into AI prompts at generation time via `buildBrandVoiceSection(client)` helper
 
+### Ad Copy (Meta Ads / Google Ads) — `ContentType.AD_COPY`
+
+A fourth `ContentType` alongside IMAGE/VIDEO/CAROUSEL, for paid-ads copy (not scheduled/posted anywhere by this app — team copy-pastes into Ads Manager). `platform` on the `BriefPlatform`/`Content` row is `"Meta Ads"` or `"Google Ads"` (see `adOnly: true` platforms in `lib/utils.ts`'s `PLATFORMS`). No media pipeline runs for this type — `mediaStatus` stays `NONE`.
+
+- `BriefPlatform.finalUrl`: nullable, the landing page the ad points to — only meaningful for AD_COPY.
+- One `Content` row = one **Meta ad variant** (`adPrimaryText`, `adHeadline`, `adDescription`, `callToAction` reused for the CTA button label) — `postsCount` means "ad variants" here, each with a distinct angle (same variety mechanism as organic posts).
+- One `Content` row = one full **Google Responsive Search Ad** (`adHeadlines`/`adDescriptions`/`adPaths` are JSON string arrays — Google mixes/matches within them, they ARE the ad, not separate variants — plus `businessName`).
+- `Content.policyFlags`: JSON array of `{severity: 'error'|'warning', field, message}` from `lib/ad-copy-policy.ts`'s validators, run right after generation. `error` = Google's hard field-count/length caps (would actually be rejected as-is); `warning` = Meta's soft display limits or a Personal-Attributes/Editorial content-policy judgment call. **Always advisory — never blocks saving or auto-edits the draft**; shown to the team in `ContentViewDrawer`, never to the client portal (same treatment as `internalNote`).
+- Compliance specifics (character limits, Meta Personal Attributes rules, Google Misrepresentation/Editorial rules) live in `docs/ad-copy-policy-checklist.md`, sourced from Meta/Google's own policy pages. `lib/ad-copy-policy.ts` is a hand-maintained mirror of that doc for the actual runtime checks — update both together when either platform's policy changes; there's no automatic sync between them.
+
 ### Content Generation — `POST /api/generate`
 
 Accepts optional params beyond `briefPlatformId`:
@@ -111,6 +121,8 @@ Accepts optional params beyond `briefPlatformId`:
 - `lib/replicate-client.ts` — Replicate singleton, server-only
 - `lib/cloudinary-client.ts` — Cloudinary config + `uploadFromUrl()`, server-only
 - `lib/media-generation.ts` — Full media pipeline orchestration; `runReplicate()` wrapper handles 429 retries
+- `lib/ad-copy.ts` — Claude tool schemas + prompt builders for Meta/Google ad copy generation (see Ad Copy section above)
+- `lib/ad-copy-policy.ts` — deterministic post-generation validator (character limits + content-policy flag patterns), hand-mirrors `docs/ad-copy-policy-checklist.md`
 - `components/GeneratingPoller.tsx` — Client component; polls `router.refresh()` every 5s when IMAGE/CAROUSEL is GENERATING
 - `components/ContentViewDrawer.tsx` — Client component; slide-over drawer on the brief detail page. Opens on "View →" click, fetches full content via `GET /api/content/[id]` on open. Re-fetches automatically when `status`/`mediaStatus` props change after a `router.refresh()`. Includes all text fields, media preview, **Revision Thread** (role-coloured: client=orange, team=blue; team can reply via `POST /api/content/[id]/revisions`), ScheduleDatePicker, ApprovalActions, **Regenerate with Direction** footer, and **Internal Note** amber textarea (auto-saves on blur). Props include `briefPlatformId` and `totalPosts`.
 - `components/CollapsiblePlatformCard.tsx` — Client component; wraps each platform section on the brief detail page with a chevron toggle. Completed platforms (`existingCount >= postsCount`) default to collapsed.

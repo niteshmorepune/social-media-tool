@@ -9,6 +9,8 @@ import {
   generateThumbnailAndStartVideo,
   SlideInput,
 } from '@/lib/media-generation'
+import { metaAdCopyTool, googleAdCopyTool, AD_COPY_SYSTEM_PROMPT, buildAdCopyUserPrompt } from '@/lib/ad-copy'
+import { validateMetaAdCopy, validateGoogleAdCopy, PolicyFlag } from '@/lib/ad-copy-policy'
 
 // ── Claude tool schemas (same as single generate route) ──────────────────────
 
@@ -177,6 +179,62 @@ For image/video prompts, write rich, detailed descriptions suitable for AI gener
   return toolUse.input as Record<string, unknown>
 }
 
+// ── Ad copy generation (Meta Ads / Google Ads) ────────────────────────────────
+
+async function generateAdCopyContent(
+  bp: { platform: string; finalUrl: string | null },
+  brief: {
+    contentGoal:          string
+    campaignDescription:  string
+    specialInstructions:  string | null
+    client: {
+      name: string; industry: string; brandTone: string; targetAudience: string
+      brandKeywords?: string | null; contentDos?: string | null
+      contentDonts?: string | null; competitorsToAvoid?: string | null
+    }
+  }
+): Promise<{ generated: Record<string, unknown>; policyFlags: PolicyFlag[] }> {
+  const userPrompt = buildAdCopyUserPrompt({
+    platform:      bp.platform as 'Meta Ads' | 'Google Ads',
+    finalUrl:      bp.finalUrl,
+    variantIndex:  1,
+    totalVariants: 1,
+    brief,
+    client: brief.client,
+  })
+
+  const tools = bp.platform === 'Meta Ads' ? metaAdCopyTool() : googleAdCopyTool()
+  const toolName = bp.platform === 'Meta Ads' ? 'generate_meta_ad_copy' : 'generate_google_ad_copy'
+
+  const response = await claude.messages.create({
+    model:       'claude-sonnet-4-6',
+    max_tokens:  2048,
+    system:      AD_COPY_SYSTEM_PROMPT,
+    tools,
+    tool_choice: { type: 'any' },
+    messages:    [{ role: 'user', content: userPrompt }],
+  })
+
+  const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === toolName)
+  if (!toolUse || toolUse.type !== 'tool_use') throw new Error(`No structured ad copy for ${bp.platform}`)
+  const generated = toolUse.input as Record<string, unknown>
+
+  const policyFlags = bp.platform === 'Meta Ads'
+    ? validateMetaAdCopy({
+        primaryText: generated.primaryText as string,
+        headline:    generated.headline as string,
+        description: (generated.description as string) ?? null,
+      })
+    : validateGoogleAdCopy({
+        headlines:    (generated.headlines as string[]) ?? [],
+        descriptions: (generated.descriptions as string[]) ?? [],
+        paths:        (generated.paths as string[]) ?? [],
+        businessName: (generated.businessName as string) ?? null,
+      })
+
+  return { generated, policyFlags }
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
@@ -204,6 +262,31 @@ export async function POST(req: Request) {
   // Generate sequentially to avoid rate limits
   for (const bp of brief.platforms) {
     try {
+      if (bp.contentType === 'AD_COPY') {
+        const { generated, policyFlags } = await generateAdCopyContent(bp, brief)
+        const content = await prisma.content.create({
+          data: {
+            briefId,
+            briefPlatformId: bp.id,
+            platform:        bp.platform,
+            contentType:     bp.contentType,
+            status:          'PENDING',
+            mediaStatus:     'NONE',
+            callToAction:    (generated.callToAction as string) ?? null,
+            adPrimaryText:   (generated.primaryText as string)  ?? null,
+            adHeadline:      (generated.headline as string)     ?? null,
+            adDescription:   (generated.description as string)  ?? null,
+            adHeadlines:     (generated.headlines as object)    ?? undefined,
+            adDescriptions:  (generated.descriptions as object) ?? undefined,
+            adPaths:         (generated.paths as object)        ?? undefined,
+            businessName:    (generated.businessName as string) ?? null,
+            policyFlags:     policyFlags as unknown as object,
+          },
+        })
+        results.push(content)
+        continue
+      }
+
       const generated = await generateTextContent(bp.platform, bp.contentType, brief)
 
       // Save text content immediately

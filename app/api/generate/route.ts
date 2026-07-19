@@ -9,6 +9,8 @@ import {
   generateThumbnailAndStartVideo,
   SlideInput,
 } from '@/lib/media-generation'
+import { metaAdCopyTool, googleAdCopyTool, AD_COPY_SYSTEM_PROMPT, buildAdCopyUserPrompt } from '@/lib/ad-copy'
+import { validateMetaAdCopy, validateGoogleAdCopy } from '@/lib/ad-copy-policy'
 
 // ── Claude tool schemas ───────────────────────────────────────────────────────
 
@@ -148,6 +150,71 @@ export async function POST(req: Request) {
     await prisma.content.delete({ where: { id: contentIdToReplace } })
   } else if (!addPost) {
     await prisma.content.deleteMany({ where: { briefPlatformId } })
+  }
+
+  if (contentType === 'AD_COPY') {
+    const userPrompt = buildAdCopyUserPrompt({
+      platform: platform as 'Meta Ads' | 'Google Ads',
+      finalUrl: briefPlatform.finalUrl,
+      variantIndex: postNumber,
+      totalVariants: totalPosts,
+      brief,
+      client,
+      direction,
+    })
+
+    const tools = platform === 'Meta Ads' ? metaAdCopyTool() : googleAdCopyTool()
+    const toolName = platform === 'Meta Ads' ? 'generate_meta_ad_copy' : 'generate_google_ad_copy'
+
+    const response = await claude.messages.create({
+      model:       'claude-sonnet-4-6',
+      max_tokens:  2048,
+      system:      AD_COPY_SYSTEM_PROMPT,
+      tools,
+      tool_choice: { type: 'any' },
+      messages:    [{ role: 'user', content: userPrompt }],
+    })
+
+    const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === toolName)
+    if (!toolUse || toolUse.type !== 'tool_use') {
+      return NextResponse.json({ error: 'AI did not return structured ad copy' }, { status: 500 })
+    }
+    const generated = toolUse.input as Record<string, unknown>
+
+    const policyFlags = platform === 'Meta Ads'
+      ? validateMetaAdCopy({
+          primaryText: generated.primaryText as string,
+          headline:    generated.headline as string,
+          description: (generated.description as string) ?? null,
+        })
+      : validateGoogleAdCopy({
+          headlines:    (generated.headlines as string[]) ?? [],
+          descriptions: (generated.descriptions as string[]) ?? [],
+          paths:        (generated.paths as string[]) ?? [],
+          businessName: (generated.businessName as string) ?? null,
+        })
+
+    const content = await prisma.content.create({
+      data: {
+        briefId:         brief.id,
+        briefPlatformId,
+        platform,
+        contentType,
+        status:          'PENDING',
+        mediaStatus:     'NONE',
+        callToAction:    (generated.callToAction as string) ?? null,
+        adPrimaryText:   (generated.primaryText as string)  ?? null,
+        adHeadline:      (generated.headline as string)     ?? null,
+        adDescription:   (generated.description as string)  ?? null,
+        adHeadlines:     (generated.headlines as object)    ?? undefined,
+        adDescriptions:  (generated.descriptions as object) ?? undefined,
+        adPaths:         (generated.paths as object)        ?? undefined,
+        businessName:    (generated.businessName as string) ?? null,
+        policyFlags:     policyFlags as unknown as object,
+      },
+    })
+
+    return NextResponse.json(content, { status: 201 })
   }
 
   const systemPrompt = `You are an expert social media copywriter and content strategist.

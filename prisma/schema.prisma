@@ -27,6 +27,7 @@ enum ContentType {
   IMAGE
   VIDEO
   CAROUSEL
+  AD_COPY
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -106,9 +107,11 @@ model Brief {
 model BriefPlatform {
   id          String      @id @default(uuid())
   briefId     String
-  platform    String      // "Instagram" | "Facebook" | "LinkedIn" | "Twitter" | "TikTok" | "Google Business"
+  platform    String      // "Instagram" | "Facebook" | "LinkedIn" | "Twitter" | "TikTok" | "Google Business" | "Meta Ads" | "Google Ads"
   contentType ContentType
-  postsCount  Int         @default(1) // number of posts to generate for this platform per month
+  postsCount  Int         @default(1) // number of posts (or ad variants, for AD_COPY) to generate per month
+  // Landing page the ad points to — only meaningful when contentType is AD_COPY
+  finalUrl    String?     @db.Text
 
   brief   Brief     @relation(fields: [briefId], references: [id], onDelete: Cascade)
   content Content[]
@@ -143,6 +146,21 @@ model Content {
   videoConcept    String? @db.Text // Overall video idea/treatment
   duration        String? // e.g. "30 seconds", "60 seconds"
   thumbnailPrompt String? @db.Text
+
+  // ── Ad Copy (Meta Ads & Google Ads) ────────────────
+  // Meta: one variant's worth of ad text (this Content row = one ad variant)
+  adPrimaryText  String? @db.Text
+  adHeadline     String? @db.Text
+  adDescription  String? @db.Text
+  // Google: this Content row = one full Responsive Search Ad — these arrays
+  // ARE the ad (Google rotates/tests combinations from within them)
+  adHeadlines    Json?   // 3–15 headline strings, <=30 chars each
+  adDescriptions Json?   // 2–4 description strings, <=90 chars each
+  adPaths        Json?   // up to 2 display-path strings, <=15 chars each
+  businessName   String? // Google: <=25 chars
+  // Validator output against docs/ad-copy-policy-checklist.md — flagged for
+  // human review, never used to auto-block or auto-edit generated copy
+  policyFlags    Json?   // [{severity:'error'|'warning', field, message}]
 
   // ── Internal note (team-only, never shown to client) ──
   internalNote String? @db.Text

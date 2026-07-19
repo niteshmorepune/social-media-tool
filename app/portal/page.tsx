@@ -169,6 +169,11 @@ export default async function PortalPage() {
                             thumbnailUrl={c.thumbnailUrl}
                             mediaStatus={c.mediaStatus}
                             slides={slides}
+                            adPrimaryText={c.adPrimaryText}
+                            adHeadline={c.adHeadline}
+                            adDescription={c.adDescription}
+                            adHeadlines={c.adHeadlines as string[] | null}
+                            adDescriptions={c.adDescriptions as string[] | null}
                           />
                         </div>
 

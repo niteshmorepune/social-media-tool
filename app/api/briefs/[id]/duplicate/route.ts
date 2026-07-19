@@ -35,6 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           platform:    p.platform,
           contentType: p.contentType,
           postsCount:  p.postsCount,
+          finalUrl:    p.finalUrl,
         })),
       },
     },

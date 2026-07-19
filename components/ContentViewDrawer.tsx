@@ -7,6 +7,7 @@ import ApprovalActions from './ApprovalActions'
 import RegenerateMediaButton from './RegenerateMediaButton'
 import ScheduleDatePicker from './ScheduleDatePicker'
 import { getStatusColor, getStatusLabel, CAPTION_LIMITS } from '@/lib/utils'
+import { META_SOFT_LIMITS, GOOGLE_HARD_LIMITS, PolicyFlag } from '@/lib/ad-copy-policy'
 
 interface Revision {
   id: string
@@ -46,6 +47,14 @@ interface FullContent {
   internalNote: string | null
   slides: Slide[] | null
   revisions: Revision[]
+  adPrimaryText: string | null
+  adHeadline: string | null
+  adDescription: string | null
+  adHeadlines: string[] | null
+  adDescriptions: string[] | null
+  adPaths: string[] | null
+  businessName: string | null
+  policyFlags: PolicyFlag[] | null
 }
 
 interface Props {
@@ -275,6 +284,23 @@ export default function ContentViewDrawer({
                     slides={data.slides}
                   />
 
+                  {data.policyFlags && data.policyFlags.length > 0 && <PolicyFlags flags={data.policyFlags} />}
+
+                  {data.adPrimaryText && <Field label="Primary Text" value={data.adPrimaryText} charLimit={META_SOFT_LIMITS.primaryText} softLimit />}
+                  {data.adHeadline && <Field label="Headline" value={data.adHeadline} charLimit={META_SOFT_LIMITS.headline} softLimit />}
+                  {data.adDescription && <Field label="Description" value={data.adDescription} charLimit={META_SOFT_LIMITS.description} softLimit />}
+
+                  {data.adHeadlines && data.adHeadlines.length > 0 && (
+                    <FieldList label="Headlines" values={data.adHeadlines} charLimit={GOOGLE_HARD_LIMITS.headline} />
+                  )}
+                  {data.adDescriptions && data.adDescriptions.length > 0 && (
+                    <FieldList label="Descriptions" values={data.adDescriptions} charLimit={GOOGLE_HARD_LIMITS.description} />
+                  )}
+                  {data.adPaths && data.adPaths.length > 0 && (
+                    <FieldList label="Display Paths" values={data.adPaths} charLimit={GOOGLE_HARD_LIMITS.path} />
+                  )}
+                  {data.businessName && <Field label="Business Name" value={data.businessName} charLimit={GOOGLE_HARD_LIMITS.businessName} />}
+
                   {data.caption && <Field label="Caption" value={data.caption} charLimit={CAPTION_LIMITS[platform]} />}
                   {data.hook && <Field label="Hook (first 3 sec)" value={data.hook} />}
                   {data.copy && <Field label="Copy" value={data.copy} />}
@@ -436,18 +462,21 @@ export default function ContentViewDrawer({
   )
 }
 
-function Field({ label, value, accent, muted, charLimit }: {
-  label: string; value: string; accent?: boolean; muted?: boolean; charLimit?: number
+function Field({ label, value, accent, muted, charLimit, softLimit }: {
+  label: string; value: string; accent?: boolean; muted?: boolean; charLimit?: number; softLimit?: boolean
 }) {
   const count = value.length
   const pct   = charLimit ? count / charLimit : 0
+  // softLimit fields (Meta) are recommendations Meta truncates around, not hard
+  // rejections — never shown as red/error the way a Google hard-cap overage is.
+  const overColor = softLimit ? 'text-amber-500 font-semibold' : 'text-red-500 font-semibold'
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
         {charLimit && (
           <p className={`text-xs tabular-nums ${
-            pct > 1 ? 'text-red-500 font-semibold' : pct > 0.8 ? 'text-amber-500' : 'text-gray-400'
+            pct > 1 ? overColor : pct > 0.8 ? 'text-amber-500' : 'text-gray-400'
           }`}>
             {count.toLocaleString()} / {charLimit.toLocaleString()}
             {pct > 1 && ' ⚠'}
@@ -459,6 +488,49 @@ function Field({ label, value, accent, muted, charLimit }: {
       }`}>
         {value}
       </p>
+    </div>
+  )
+}
+
+// Google's headline/description/path pools — array of independently-limited strings
+function FieldList({ label, values, charLimit }: { label: string; values: string[]; charLimit: number }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{label}</p>
+      <div className="space-y-1">
+        {values.map((v, i) => {
+          const over = v.length > charLimit
+          return (
+            <div key={i} className="flex items-center justify-between gap-3 bg-gray-50 rounded-lg px-3 py-1.5">
+              <p className="text-sm text-gray-800">{v}</p>
+              <p className={`text-xs tabular-nums shrink-0 ${over ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                {v.length}/{charLimit}{over && ' ⚠'}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Compliance flags from lib/ad-copy-policy.ts — always advisory, human decides
+function PolicyFlags({ flags }: { flags: PolicyFlag[] }) {
+  const errors = flags.filter(f => f.severity === 'error')
+  const warnings = flags.filter(f => f.severity === 'warning')
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Policy Check</p>
+      {errors.map((f, i) => (
+        <div key={`e${i}`} className="text-xs bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2">
+          <span className="font-semibold">Will likely be rejected — </span>{f.message}
+        </div>
+      ))}
+      {warnings.map((f, i) => (
+        <div key={`w${i}`} className="text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3 py-2">
+          {f.message}
+        </div>
+      ))}
     </div>
   )
 }
