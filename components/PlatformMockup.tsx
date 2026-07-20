@@ -22,6 +22,12 @@ interface Props {
   adDescription?: string | null
   adHeadlines?: string[] | null
   adDescriptions?: string[] | null
+  title?: string | null
+  metaTitle?: string | null
+  metaDescription?: string | null
+  slug?: string | null
+  excerpt?: string | null
+  body?: string | null
 }
 
 interface MediaProps {
@@ -446,6 +452,31 @@ function AdCopyMockup(props: Props) {
   )
 }
 
+// Blog posts are reviewed as an article + a Google search-result preview,
+// not a simulated social feed post.
+function BlogMockup(props: Props) {
+  return (
+    <div className="max-w-lg mx-auto space-y-3">
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm p-4">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Google search preview</p>
+        <p className="text-[13px] text-gray-600 truncate">niranjanenterprises.com/blog/{props.slug ?? 'article-slug'}</p>
+        <p className="text-lg text-blue-800 truncate">{truncate(props.metaTitle ?? null, 60)}</p>
+        <p className="text-sm text-gray-600">{truncate(props.metaDescription ?? null, 155)}</p>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h3 className="text-base font-semibold text-gray-900">{props.title}</h3>
+          {props.excerpt && <p className="text-xs text-gray-500 mt-1">{props.excerpt}</p>}
+        </div>
+        <div className="px-4 py-3 max-h-96 overflow-y-auto">
+          <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans leading-relaxed">{props.body}</pre>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function DefaultMockup(props: Props) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-lg mx-auto shadow-sm">
@@ -470,6 +501,7 @@ function DefaultMockup(props: Props) {
 
 export default function PlatformMockup(props: Props) {
   if (props.contentType === 'AD_COPY') return <AdCopyMockup {...props} />
+  if (props.contentType === 'BLOG_POST') return <BlogMockup {...props} />
   switch (props.platform) {
     case 'Instagram':       return <InstagramMockup      {...props} />
     case 'Facebook':        return <FacebookMockup       {...props} />

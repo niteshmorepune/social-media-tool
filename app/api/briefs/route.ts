@@ -60,11 +60,12 @@ export async function POST(req: Request) {
       scheduledMonth: new Date(scheduledMonth),
       createdById,
       platforms: {
-        create: platforms.map((p: { platform: string; contentType: string; postsCount?: number; finalUrl?: string }) => ({
-          platform:    p.platform,
-          contentType: p.contentType,
-          postsCount:  p.postsCount ?? 1,
-          finalUrl:    p.finalUrl || null
+        create: platforms.map((p: { platform: string; contentType: string; postsCount?: number; finalUrl?: string; targetKeyword?: string }) => ({
+          platform:      p.platform,
+          contentType:   p.contentType,
+          postsCount:    p.postsCount ?? 1,
+          finalUrl:      p.finalUrl || null,
+          targetKeyword: p.targetKeyword || null
         }))
       }
     },

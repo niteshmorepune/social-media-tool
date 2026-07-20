@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { PLATFORMS, CONTENT_GOALS } from '@/lib/utils'
 
 interface Client { id: string; name: string; primaryColor: string | null }
-type ContentTypeChoice = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | 'AD_COPY'
-interface PlatformEntry { platform: string; contentType: ContentTypeChoice; postsCount: number; finalUrl?: string }
+type ContentTypeChoice = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | 'AD_COPY' | 'BLOG_POST'
+interface PlatformEntry { platform: string; contentType: ContentTypeChoice; postsCount: number; finalUrl?: string; targetKeyword?: string }
 
 export default function BriefForm({ clients }: { clients: Client[] }) {
   const router = useRouter()
@@ -31,7 +31,11 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
     setPlatforms(prev => {
       const exists = prev.find(p => p.platform === platform && p.contentType === contentType)
       if (exists) return prev.filter(p => !(p.platform === platform && p.contentType === contentType))
-      const defaults = contentType === 'AD_COPY' ? { postsCount: 2, finalUrl: '' } : { postsCount: 4 }
+      const defaults = contentType === 'AD_COPY'
+        ? { postsCount: 2, finalUrl: '' }
+        : contentType === 'BLOG_POST'
+        ? { postsCount: 1, targetKeyword: '' }
+        : { postsCount: 4 }
       return [...prev, { platform, contentType, ...defaults }]
     })
   }
@@ -52,6 +56,14 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
     setPlatforms(prev => prev.map(p =>
       p.platform === platform && p.contentType === contentType
         ? { ...p, finalUrl: value }
+        : p
+    ))
+  }
+
+  function updateTargetKeyword(platform: string, contentType: string, value: string) {
+    setPlatforms(prev => prev.map(p =>
+      p.platform === platform && p.contentType === contentType
+        ? { ...p, targetKeyword: value }
         : p
     ))
   }
@@ -160,11 +172,11 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
         <p className="text-sm text-gray-500 mb-4">Select platform and content type combinations, then set how many posts per month for each.</p>
 
         <div className="space-y-4">
-          {PLATFORMS.map(({ value, label, supportsVideo, supportsCarousel, adOnly }) => (
+          {PLATFORMS.map(({ value, label, supportsVideo, supportsCarousel, adOnly, blogOnly }) => (
             <div key={value}>
               <p className="text-sm font-medium text-gray-700 mb-2">{label}</p>
               <div className="flex gap-2">
-                {(adOnly ? (['AD_COPY'] as const) : (['IMAGE', 'VIDEO', 'CAROUSEL'] as const)).map(type => {
+                {(blogOnly ? (['BLOG_POST'] as const) : adOnly ? (['AD_COPY'] as const) : (['IMAGE', 'VIDEO', 'CAROUSEL'] as const)).map(type => {
                   if (type === 'VIDEO' && !supportsVideo) return null
                   if (type === 'CAROUSEL' && !supportsCarousel) return null
                   const selected = isSelected(value, type)
@@ -179,7 +191,7 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
                           : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                       }`}
                     >
-                      {type === 'AD_COPY' ? 'Ad Copy' : type.charAt(0) + type.slice(1).toLowerCase()}
+                      {type === 'AD_COPY' ? 'Ad Copy' : type === 'BLOG_POST' ? 'Blog Post' : type.charAt(0) + type.slice(1).toLowerCase()}
                     </button>
                   )
                 })}
@@ -194,11 +206,13 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
             <div className="space-y-2">
               {platforms.map((p, i) => {
                 const isAdCopy = p.contentType === 'AD_COPY'
+                const isBlogPost = p.contentType === 'BLOG_POST'
+                const contentTypeLabel = isAdCopy ? 'Ad Copy' : isBlogPost ? 'Blog Post' : p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()
                 return (
                   <div key={i} className="bg-blue-50 rounded-lg px-3 py-2.5 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-blue-800 font-medium">
-                        {p.platform} · {isAdCopy ? 'Ad Copy' : p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()}
+                        {p.platform} · {contentTypeLabel}
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-blue-600">{isAdCopy ? 'Ad variants:' : 'Posts/month:'}</span>
@@ -232,6 +246,15 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
                         value={p.finalUrl ?? ''}
                         onChange={e => updateFinalUrl(p.platform, p.contentType, e.target.value)}
                         placeholder="Landing Page URL — e.g. https://niranjanenterprises.com/services/seo"
+                        className="w-full px-2.5 py-1.5 text-xs border border-blue-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-blue-300"
+                      />
+                    )}
+                    {isBlogPost && (
+                      <input
+                        type="text"
+                        value={p.targetKeyword ?? ''}
+                        onChange={e => updateTargetKeyword(p.platform, p.contentType, e.target.value)}
+                        placeholder="Target keyword — e.g. affordable website design in Pune"
                         className="w-full px-2.5 py-1.5 text-xs border border-blue-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-blue-300"
                       />
                     )}

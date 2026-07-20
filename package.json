@@ -14,7 +14,7 @@
     "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
+    "@anthropic-ai/sdk": "^0.41.0",
     "@auth/prisma-adapter": "^2.7.4",
     "@prisma/client": "^6.6.0",
     "@runwayml/sdk": "^3.19.0",

@@ -28,6 +28,7 @@ enum ContentType {
   VIDEO
   CAROUSEL
   AD_COPY
+  BLOG_POST
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -112,6 +113,8 @@ model BriefPlatform {
   postsCount  Int         @default(1) // number of posts (or ad variants, for AD_COPY) to generate per month
   // Landing page the ad points to — only meaningful when contentType is AD_COPY
   finalUrl    String?     @db.Text
+  // SEO target keyword — meaningful for BLOG_POST (and future LANDING_PAGE)
+  targetKeyword String?   @db.Text
 
   brief   Brief     @relation(fields: [briefId], references: [id], onDelete: Cascade)
   content Content[]
@@ -161,6 +164,18 @@ model Content {
   // Validator output against docs/ad-copy-policy-checklist.md — flagged for
   // human review, never used to auto-block or auto-edit generated copy
   policyFlags    Json?   // [{severity:'error'|'warning', field, message}]
+
+  // ── Blog / SEO long-form (Blog Post) ────────────────
+  title            String?   @db.Text // H1 / display title
+  metaTitle        String?            // SEO <title>, aim ≤60 chars
+  metaDescription  String?   @db.Text // aim ≤155 chars
+  slug             String?
+  excerpt          String?   @db.Text // short summary for listing pages
+  body             String?   @db.Text // full article, Markdown
+  // Set by the "Humanize & Check Originality" action — advisory, not a guarantee
+  originalityScore Int?               // 0–100, higher = more original/human
+  originalityNotes String?   @db.Text
+  humanizedAt      DateTime?
 
   // ── Internal note (team-only, never shown to client) ──
   internalNote String? @db.Text

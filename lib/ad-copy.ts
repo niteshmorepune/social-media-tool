@@ -10,6 +10,7 @@
  */
 
 import { META_SOFT_LIMITS, GOOGLE_HARD_LIMITS } from './ad-copy-policy'
+import { buildBrandVoiceSection } from './brand-voice'
 
 export const META_CTA_OPTIONS = [
   'Learn More', 'Sign Up', 'Shop Now', 'Get Quote', 'Contact Us',
@@ -62,29 +63,6 @@ export function googleAdCopyTool() {
       required: ['headlines', 'descriptions'],
     },
   }]
-}
-
-// ── Brand voice block (same shape as the organic-content routes) ─────────────
-
-function buildBrandVoiceSection(client: {
-  brandKeywords?: string | null
-  contentDos?: string | null
-  contentDonts?: string | null
-  competitorsToAvoid?: string | null
-}): string {
-  const parts: string[] = []
-  if (client.brandKeywords) parts.push(`- Tone Keywords: ${client.brandKeywords}`)
-  if (client.contentDos) {
-    const lines = client.contentDos.split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length) parts.push(`- Always Do:\n${lines.map(l => `  • ${l}`).join('\n')}`)
-  }
-  if (client.contentDonts) {
-    const lines = client.contentDonts.split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length) parts.push(`- Never Do:\n${lines.map(l => `  • ${l}`).join('\n')}`)
-  }
-  if (client.competitorsToAvoid) parts.push(`- Do NOT sound like these brands: ${client.competitorsToAvoid}`)
-  if (!parts.length) return ''
-  return `\n\nBRAND VOICE RULES (strictly follow):\n${parts.join('\n')}`
 }
 
 // ── Prompts ────────────────────────────────────────────────────────────────

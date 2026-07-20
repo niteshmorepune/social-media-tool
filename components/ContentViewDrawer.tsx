@@ -55,6 +55,15 @@ interface FullContent {
   adPaths: string[] | null
   businessName: string | null
   policyFlags: PolicyFlag[] | null
+  title: string | null
+  metaTitle: string | null
+  metaDescription: string | null
+  slug: string | null
+  excerpt: string | null
+  body: string | null
+  originalityScore: number | null
+  originalityNotes: string | null
+  humanizedAt: string | null
 }
 
 interface Props {
@@ -83,6 +92,8 @@ export default function ContentViewDrawer({
   const [direction, setDirection] = useState('')
   const [regenerating, setRegenerating] = useState(false)
   const [regenError, setRegenError] = useState('')
+  const [humanizing, setHumanizing] = useState(false)
+  const [humanizeError, setHumanizeError] = useState('')
   const [noteText, setNoteText]   = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
   const [replyText, setReplyText] = useState('')
@@ -197,6 +208,24 @@ export default function ContentViewDrawer({
     }
   }
 
+  async function handleHumanize() {
+    setHumanizeError('')
+    setHumanizing(true)
+    try {
+      const res = await fetch(`/api/content/${contentId}/humanize`, { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        setHumanizeError(body?.error ?? 'Humanize & Check failed. Please try again.')
+        return
+      }
+      await fetchData()
+    } catch {
+      setHumanizeError('Request failed.')
+    } finally {
+      setHumanizing(false)
+    }
+  }
+
   // Show header badges from live fetched data if available, else from props
   const displayStatus = data?.status ?? status
   const displayMediaStatus = data?.mediaStatus ?? mediaStatus
@@ -300,6 +329,16 @@ export default function ContentViewDrawer({
                     <FieldList label="Display Paths" values={data.adPaths} charLimit={GOOGLE_HARD_LIMITS.path} />
                   )}
                   {data.businessName && <Field label="Business Name" value={data.businessName} charLimit={GOOGLE_HARD_LIMITS.businessName} />}
+
+                  {data.originalityScore !== null && (
+                    <OriginalityBadge score={data.originalityScore} notes={data.originalityNotes} humanizedAt={data.humanizedAt} />
+                  )}
+                  {data.title && <Field label="Title" value={data.title} />}
+                  {data.metaTitle && <Field label="Meta Title" value={data.metaTitle} charLimit={60} />}
+                  {data.metaDescription && <Field label="Meta Description" value={data.metaDescription} charLimit={155} />}
+                  {data.slug && <Field label="URL Slug" value={data.slug} muted />}
+                  {data.excerpt && <Field label="Excerpt" value={data.excerpt} />}
+                  {data.body && <Field label="Body" value={data.body} />}
 
                   {data.caption && <Field label="Caption" value={data.caption} charLimit={CAPTION_LIMITS[platform]} />}
                   {data.hook && <Field label="Hook (first 3 sec)" value={data.hook} />}
@@ -453,6 +492,20 @@ export default function ContentViewDrawer({
                   </div>
                   {regenError && <p className="text-xs text-red-500">{regenError}</p>}
                 </div>
+                {data.contentType === 'BLOG_POST' && (
+                  <div className="pt-1 border-t border-gray-200 space-y-2">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Humanize & Originality</p>
+                    <button
+                      onClick={handleHumanize}
+                      disabled={humanizing || !data.body}
+                      className="w-full px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+                    >
+                      {humanizing ? 'Checking...' : '✦ Humanize & Check Originality'}
+                    </button>
+                    <p className="text-xs text-gray-400">Rewrites the body to read more naturally and spot-checks it against a live web search. Overwrites the body below — review before approving.</p>
+                    {humanizeError && <p className="text-xs text-red-500">{humanizeError}</p>}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -509,6 +562,25 @@ function FieldList({ label, values, charLimit }: { label: string; values: string
             </div>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+// Result of the "Humanize & Check Originality" action — advisory, human decides
+function OriginalityBadge({ score, notes, humanizedAt }: { score: number; notes: string | null; humanizedAt: string | null }) {
+  const color = score >= 80 ? 'bg-green-50 text-green-700 border-green-200'
+    : score >= 50 ? 'bg-amber-50 text-amber-700 border-amber-200'
+    : 'bg-red-50 text-red-700 border-red-200'
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Originality Check</p>
+      <div className={`rounded-lg border px-3 py-2 ${color}`}>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold">Score: {score}/100</span>
+          {humanizedAt && <span className="text-xs opacity-75">{new Date(humanizedAt).toLocaleString()}</span>}
+        </div>
+        {notes && <p className="text-xs mt-1 whitespace-pre-line">{notes}</p>}
       </div>
     </div>
   )

@@ -11,6 +11,8 @@ import {
 } from '@/lib/media-generation'
 import { metaAdCopyTool, googleAdCopyTool, AD_COPY_SYSTEM_PROMPT, buildAdCopyUserPrompt } from '@/lib/ad-copy'
 import { validateMetaAdCopy, validateGoogleAdCopy, PolicyFlag } from '@/lib/ad-copy-policy'
+import { buildBrandVoiceSection } from '@/lib/brand-voice'
+import { blogPostTool, BLOG_SYSTEM_PROMPT, buildBlogUserPrompt } from '@/lib/blog-content'
 
 // ── Claude tool schemas (same as single generate route) ──────────────────────
 
@@ -82,37 +84,6 @@ function carouselTools(platform: string) {
       required: ['caption', 'hashtags', 'callToAction', 'slides']
     }
   }]
-}
-
-// ── Brand voice prompt block ─────────────────────────────────────────────────
-
-function buildBrandVoiceSection(client: {
-  brandKeywords?: string | null
-  contentDos?: string | null
-  contentDonts?: string | null
-  competitorsToAvoid?: string | null
-  preferredHashtags?: string | null
-}): string {
-  const parts: string[] = []
-  if (client.brandKeywords) {
-    parts.push(`- Tone Keywords: ${client.brandKeywords}`)
-  }
-  if (client.contentDos) {
-    const lines = client.contentDos.split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length) parts.push(`- Always Do:\n${lines.map(l => `  • ${l}`).join('\n')}`)
-  }
-  if (client.contentDonts) {
-    const lines = client.contentDonts.split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length) parts.push(`- Never Do:\n${lines.map(l => `  • ${l}`).join('\n')}`)
-  }
-  if (client.competitorsToAvoid) {
-    parts.push(`- Do NOT sound like these brands: ${client.competitorsToAvoid}`)
-  }
-  if (client.preferredHashtags) {
-    parts.push(`- Preferred hashtags to consider: ${client.preferredHashtags}`)
-  }
-  if (!parts.length) return ''
-  return `\n\nBRAND VOICE RULES (strictly follow for all content):\n${parts.join('\n')}`
 }
 
 // ── Text generation via Claude ────────────────────────────────────────────────
@@ -235,6 +206,42 @@ async function generateAdCopyContent(
   return { generated, policyFlags }
 }
 
+// ── Blog post generation ───────────────────────────────────────────────────────
+
+async function generateBlogContent(
+  bp: { targetKeyword: string | null },
+  brief: {
+    contentGoal:          string
+    campaignDescription:  string
+    specialInstructions:  string | null
+    client: {
+      name: string; industry: string; brandTone: string; targetAudience: string
+      brandKeywords?: string | null; contentDos?: string | null
+      contentDonts?: string | null; competitorsToAvoid?: string | null
+      preferredHashtags?: string | null
+    }
+  }
+): Promise<Record<string, unknown>> {
+  const userPrompt = buildBlogUserPrompt({
+    targetKeyword: bp.targetKeyword,
+    brief,
+    client: brief.client,
+  })
+
+  const response = await claude.messages.create({
+    model:       'claude-sonnet-4-6',
+    max_tokens:  4096,
+    system:      BLOG_SYSTEM_PROMPT,
+    tools:       blogPostTool(),
+    tool_choice: { type: 'any' },
+    messages:    [{ role: 'user', content: userPrompt }],
+  })
+
+  const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_blog_post')
+  if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No structured blog post returned')
+  return toolUse.input as Record<string, unknown>
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
@@ -281,6 +288,29 @@ export async function POST(req: Request) {
             adPaths:         (generated.paths as object)        ?? undefined,
             businessName:    (generated.businessName as string) ?? null,
             policyFlags:     policyFlags as unknown as object,
+          },
+        })
+        results.push(content)
+        continue
+      }
+
+      if (bp.contentType === 'BLOG_POST') {
+        const generated = await generateBlogContent(bp, brief)
+        const stripCite = (s: unknown) => typeof s === 'string' ? s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '') : s
+        const content = await prisma.content.create({
+          data: {
+            briefId,
+            briefPlatformId: bp.id,
+            platform:        bp.platform,
+            contentType:     bp.contentType,
+            status:          'PENDING',
+            mediaStatus:     'NONE',
+            title:           (generated.title as string)           ?? null,
+            metaTitle:       (generated.metaTitle as string)       ?? null,
+            metaDescription: (generated.metaDescription as string) ?? null,
+            slug:            (generated.slug as string)            ?? null,
+            excerpt:         stripCite(generated.excerpt)          as string ?? null,
+            body:            stripCite(generated.body)             as string ?? null,
           },
         })
         results.push(content)
