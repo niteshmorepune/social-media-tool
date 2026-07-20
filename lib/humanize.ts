@@ -5,16 +5,21 @@
  * distinctive sentences from the original against live web search results
  * and flags any close match.
  *
- * Uses plain JSON-in-text output (not Claude tool-calling) because it needs
- * to combine structured output with the web_search_20250305 tool, and the
- * sibling Drishti app (server/src/services/ai/trendIdeas.ts) already proved
- * this is the reliable way to do that combo — forcing tool_choice to a
- * specific custom tool alongside web_search is unvalidated and risks the
- * model skipping the search. Ports two gotchas learned building that
- * feature: (1) once search/tool-use blocks are interleaved, the response's
- * text isn't necessarily content[0] — take the LAST text block; (2) Claude's
- * web_search tool annotates cited claims with raw `<cite index="...">...
- * </cite>` markup that must be stripped before the text is used verbatim.
+ * Uses a real Claude tool (not JSON-in-text) for the structured output,
+ * combined with the web_search_20250305 tool via tool_choice: 'auto' so the
+ * model is free to search first and call the finalize tool once it's done —
+ * the same content-array shape (server_tool_use/web_search_tool_result for
+ * search, tool_use for the custom tool) already used successfully for
+ * blog/ad-copy generation elsewhere in this repo.
+ *
+ * An earlier version asked the model to hand-write a JSON object as plain
+ * text. That worked most of the time but failed live on a real full-length
+ * article body: the model emitted a literal unescaped `"` inside a JSON
+ * string value (`Someone in Pune types "best bakery near me"...`), producing
+ * JSON.parse-breaking output. Claude's tool-use argument encoding is done by
+ * the API layer, not hand-typed by the model, so it doesn't have this
+ * failure mode — same reason lib/blog-content.ts and lib/ad-copy.ts have
+ * never hit it despite generating similarly long text.
  */
 
 import claude from './claude'
@@ -35,18 +40,40 @@ const HUMANIZE_SYSTEM_PROMPT = `You are an editor who does two jobs on a given b
 
 1. REWRITE the article to read naturally and human-written: vary sentence length and rhythm, cut stock AI phrasing ("in today's fast-paced world", "unlock the power of", "delve into", etc.), remove repetitive transitions, and add specific, concrete detail where the original is generic — all while preserving the same meaning, facts, structure (keep the Markdown ## / ### headings), and natural use of the target keyword. Do not shorten it materially.
 
-2. ORIGINALITY CHECK: using web search, pick 3-5 of the most distinctive sentences or phrases from the ORIGINAL article body (not your rewrite) and search for them. Flag any sentence that returns a close or near-verbatim match on the live web, with the source URL. If nothing close is found for a sentence, don't flag it.
+2. ORIGINALITY CHECK: using the web_search tool, pick 3-5 of the most distinctive sentences or phrases from the ORIGINAL article body (not your rewrite) and search for them. Flag any sentence that returns a close or near-verbatim match on the live web, with the source URL. If nothing close is found for a sentence, don't flag it.
 
-Respond with ONLY a JSON object (no markdown fence, no other text) in exactly this shape:
-{
-  "revisedBody": "the full rewritten article in Markdown",
-  "originalityScore": 85,
-  "flags": [
-    { "excerpt": "the original sentence or phrase that matched", "sourceUrl": "https://...", "note": "short description of how close the match is" }
-  ]
+Do both web searches you need FIRST. Once you're done searching, call the submit_humanized_content tool exactly once with your final rewritten article and originality findings — don't emit any other text response.`
+
+function toolSchema() {
+  return [{
+    name: 'submit_humanized_content',
+    description: 'Submit the rewritten article body and originality check results',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        revisedBody: { type: 'string', description: 'The full rewritten article in Markdown, same headings/structure as the original' },
+        originalityScore: {
+          type: 'number',
+          description: '0-100. 100 means nothing found anywhere close to the original wording; lower means more/closer matches were found. 95-100 if no flags.',
+        },
+        flags: {
+          type: 'array',
+          description: 'Close/near-verbatim matches found via web search. Empty array if none.',
+          items: {
+            type: 'object',
+            properties: {
+              excerpt:   { type: 'string', description: 'The original sentence or phrase that matched' },
+              sourceUrl: { type: 'string', description: 'URL of the matching source' },
+              note:      { type: 'string', description: 'Short description of how close the match is' },
+            },
+            required: ['excerpt', 'sourceUrl', 'note'],
+          },
+        },
+      },
+      required: ['revisedBody', 'originalityScore', 'flags'],
+    },
+  }]
 }
-
-originalityScore is 0-100: 100 means nothing found anywhere close to the original wording, lower scores mean more/closer matches were found. If no flags were found, return an empty flags array and a score of 95-100.`
 
 function buildUserPrompt(body: string, targetKeyword: string | null): string {
   return `TARGET KEYWORD: ${targetKeyword ?? '(none given)'}
@@ -60,47 +87,31 @@ export async function runHumanizeAndCheck(body: string, targetKeyword: string | 
     model: 'claude-sonnet-4-6',
     max_tokens: 6000,
     system: HUMANIZE_SYSTEM_PROMPT,
-    tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
+    tools: [
+      { type: 'web_search_20250305', name: 'web_search', max_uses: 4 },
+      ...toolSchema(),
+    ],
+    tool_choice: { type: 'auto' },
     messages: [{ role: 'user', content: buildUserPrompt(body, targetKeyword) }],
   })
 
-  // With web search enabled, search/tool-use blocks can precede the final
-  // text block — take the LAST text block, not content[0].
-  const textBlocks = response.content.filter(b => b.type === 'text')
-  const lastText = textBlocks[textBlocks.length - 1]
-  if (!lastText || lastText.type !== 'text') {
-    throw new Error('Humanize & Check: AI did not return a text response')
+  const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'submit_humanized_content')
+  if (!toolUse || toolUse.type !== 'tool_use') {
+    throw new Error('Humanize & Check: AI did not call the finalize tool')
   }
 
-  const stripped = lastText.text
-    .replace(/<cite[^>]*>/g, '')
-    .replace(/<\/cite>/g, '')
-
-  // The model sometimes wraps the JSON in a markdown fence or adds a line of
-  // prose before/after it despite instructions — extract the outermost
-  // {...} object rather than anchoring on the string's start/end.
-  const start = stripped.indexOf('{')
-  const end = stripped.lastIndexOf('}')
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error('Humanize & Check: AI response did not contain a JSON object')
-  }
-  const cleaned = stripped.slice(start, end + 1)
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(cleaned)
-  } catch {
-    throw new Error('Humanize & Check: could not parse AI response as JSON')
-  }
-
-  const result = parsed as Partial<HumanizeResult>
-  if (typeof result.revisedBody !== 'string' || typeof result.originalityScore !== 'number') {
+  const generated = toolUse.input as Record<string, unknown>
+  if (typeof generated.revisedBody !== 'string' || typeof generated.originalityScore !== 'number') {
     throw new Error('Humanize & Check: AI response missing required fields')
   }
 
+  const stripCite = (s: string) => s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '')
+
+  const flags = Array.isArray(generated.flags) ? generated.flags as OriginalityFlag[] : []
+
   return {
-    revisedBody: result.revisedBody,
-    originalityScore: Math.max(0, Math.min(100, Math.round(result.originalityScore))),
-    flags: Array.isArray(result.flags) ? result.flags : [],
+    revisedBody: stripCite(generated.revisedBody),
+    originalityScore: Math.max(0, Math.min(100, Math.round(generated.originalityScore))),
+    flags: flags.map(f => ({ ...f, excerpt: stripCite(f.excerpt ?? ''), note: stripCite(f.note ?? '') })),
   }
 }
