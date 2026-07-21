@@ -14,11 +14,14 @@ interface Props {
   briefPlatformId: string
   postsCount: number
   contentItems: ContentItem[]
-  // AD_COPY has no media pipeline at all — mediaStatus stays 'NONE' permanently,
-  // so media-related actions must never be offered for it (unlike IMAGE/VIDEO/
-  // CAROUSEL, where 'NONE' means media generation is genuinely pending).
+  // AD_COPY/BLOG_POST/LANDING_PAGE have no media pipeline at all —
+  // mediaStatus stays 'NONE' permanently, so media-related actions must
+  // never be offered for them (unlike IMAGE/VIDEO/CAROUSEL, where 'NONE'
+  // means media generation is genuinely pending).
   contentType?: string
 }
+
+const NO_MEDIA_TYPES = ['AD_COPY', 'BLOG_POST', 'LANDING_PAGE']
 
 type Action = 'fill' | 'fill-with-media' | 'regenerate-all' | 'regenerate-all-with-media' | 'generate-media' | 'content-only'
 
@@ -29,7 +32,7 @@ export default function BriefGenerateButton({ briefPlatformId, postsCount, conte
   const [open, setOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  const hasMedia       = contentType !== 'AD_COPY'
+  const hasMedia       = !NO_MEDIA_TYPES.includes(contentType ?? '')
   const existingCount  = contentItems.length
   const postsNeeded    = Math.max(0, postsCount - existingCount)
   const mediaNoneItems = hasMedia ? contentItems.filter(c => c.mediaStatus === 'NONE') : []
