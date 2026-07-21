@@ -113,7 +113,10 @@ export default function HelpPage() {
               <ContentTypeRow label="Video" desc="AI generates a 10-second silent visual clip (RunwayML Gen-3 Turbo maximum). The script and duration field guide Claude on concept and pacing for the full video — a human editor assembles the final cut. No voiceover is added automatically." />
               <ContentTypeRow label="Carousel" desc="Multi-slide post. Each slide gets its own image — generation takes longer." />
               <ContentTypeRow label="Ad Copy" desc="Paid-ad text for Meta Ads or Google Ads — see the dedicated section below. No media is generated for this type." />
+              <ContentTypeRow label="Blog Post" desc="Full SEO article under the Website platform — see the dedicated section below. No media is generated for this type." />
+              <ContentTypeRow label="Landing Page" desc="Conversion-focused page copy under the Website platform — see the dedicated section below. No media is generated for this type." />
             </div>
+            <Note text='Image and Carousel posts now also generate accessibility/SEO Alt Text alongside the image prompt — shown as an "Alt Text" field in the View → drawer, and used as the real alt attribute on the image itself. No extra step needed, it comes with the normal generation.' />
           </div>
 
           <div className="border-t border-gray-100 pt-4">
@@ -130,6 +133,28 @@ export default function HelpPage() {
                 <StatusRow label="Amber warning" color="bg-amber-100 text-amber-700" desc="A Meta soft/recommended limit was exceeded, or the copy may run into Meta's Personal Attributes policy (implying the reader has a specific health, financial, or other protected attribute) — worth a second look, not a guaranteed rejection." />
               </div>
               <Note text="Policy Check is always advisory — it never blocks saving or silently edits the AI's draft. The team makes the final call, exactly like every other AI-assisted draft in this tool." />
+            </div>
+            <div className="mt-3">
+              <p className="font-medium text-gray-800 mb-1">A/B testing angles</p>
+              <p className="text-gray-600 mb-2">When you set more than one ad variant, each one is now written to test a specific, labeled psychological angle — shown as a coloured badge at the top of the ad (e.g. <em>Urgency / Scarcity</em>, <em>Social Proof</em>). The angles rotate automatically: Direct Offer, Urgency/Scarcity, Social Proof, Curiosity Gap, Benefit-Led, Problem-Agitate-Solve. This turns &ldquo;3 variants&rdquo; into a real, labeled A/B test set instead of just differently-worded copy — you can track which angle actually performs best once the ads are live.</p>
+              <Note text="Urgency/Scarcity never invents a fake deadline, and Social Proof never invents a specific stat or client count — both angles are written from only what the brief actually supports." />
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="font-medium text-gray-900 mb-2">Blog Post &amp; Landing Page — Website Content</p>
+            <p className="text-gray-600 mb-3">The <strong>Website</strong> platform entry (lower down the platform list, alongside Meta Ads and Google Ads) offers two content types for long-form, SEO-oriented writing that lives on the client&apos;s own site rather than social media: <strong>Blog Post</strong> (a full article) and <strong>Landing Page</strong> (conversion-focused page copy — hero headline/subheadline, benefit sections, a closing call to action).</p>
+            <Step n={1} text='Toggle "Blog Post" and/or "Landing Page" under Website. Each one you select adds a Target Keyword field to the selected-platforms list below — the SEO keyword this piece should be written around.' />
+            <Step n={2} text="Generate as usual. The result includes a Title, Meta Title, Meta Description, URL Slug, Excerpt, and the full Body in Markdown." />
+            <Note text='Landing Page copy never invents a fake customer testimonial, review, or statistic for its social-proof section — it leaves an obvious bracketed placeholder like "[Insert client testimonial here]" for the team to fill in with something real.' />
+            <div className="mt-3">
+              <p className="font-medium text-gray-800 mb-1">Humanize &amp; Check Originality</p>
+              <p className="text-gray-600 mb-2">Inside the View → drawer for a Blog Post or Landing Page, click <strong>✨ Humanize &amp; Check Originality</strong> to rewrite the body so it reads less like AI-generated text, and spot-check it against a live web search for close or near-verbatim matches elsewhere online. It shows an <strong>Originality Score</strong> (0–100, higher is better) and, if anything close was found, the matching excerpt and its source URL.</p>
+              <Note text="This overwrites the Body field with the rewritten version — review it before approving. The score and flags are advisory, a best-effort spot-check, not a guaranteed plagiarism-detector replacement." />
+            </div>
+            <div className="mt-3">
+              <p className="font-medium text-gray-800 mb-1">SEO Meta-Pack</p>
+              <p className="text-gray-600">Also inside the View → drawer, the <strong>SEO Meta-Pack</strong> section shows a ready-to-copy Schema.org JSON-LD <code className="bg-gray-100 px-1 rounded text-xs">&lt;script&gt;</code> tag — <em>Article</em> schema for a Blog Post, <em>Service</em> schema for a Landing Page — for the developer to paste into the page&apos;s <code className="bg-gray-100 px-1 rounded text-xs">&lt;head&gt;</code> for rich Google search results. It&apos;s computed directly from the Title, Meta Description, and Slug fields, so it always matches what&apos;s on screen.</p>
             </div>
           </div>
         </SectionCard>
