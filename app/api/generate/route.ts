@@ -13,6 +13,7 @@ import { metaAdCopyTool, googleAdCopyTool, AD_COPY_SYSTEM_PROMPT, buildAdCopyUse
 import { validateMetaAdCopy, validateGoogleAdCopy } from '@/lib/ad-copy-policy'
 import { buildBrandVoiceSection } from '@/lib/brand-voice'
 import { blogPostTool, BLOG_SYSTEM_PROMPT, buildBlogUserPrompt } from '@/lib/blog-content'
+import { landingPageTool, LANDING_PAGE_SYSTEM_PROMPT, buildLandingPageUserPrompt } from '@/lib/landing-page-content'
 
 // ── Claude tool schemas ───────────────────────────────────────────────────────
 
@@ -208,6 +209,50 @@ export async function POST(req: Request) {
     const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_blog_post')
     if (!toolUse || toolUse.type !== 'tool_use') {
       return NextResponse.json({ error: 'AI did not return a structured blog post' }, { status: 500 })
+    }
+    const generated = toolUse.input as Record<string, unknown>
+    const stripCite = (s: unknown) => typeof s === 'string' ? s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '') : s
+
+    const content = await prisma.content.create({
+      data: {
+        briefId:         brief.id,
+        briefPlatformId,
+        platform,
+        contentType,
+        status:          'PENDING',
+        mediaStatus:     'NONE',
+        title:           (generated.title as string)           ?? null,
+        metaTitle:       (generated.metaTitle as string)       ?? null,
+        metaDescription: (generated.metaDescription as string) ?? null,
+        slug:            (generated.slug as string)            ?? null,
+        excerpt:         stripCite(generated.excerpt)          as string ?? null,
+        body:            stripCite(generated.body)             as string ?? null,
+      },
+    })
+
+    return NextResponse.json(content, { status: 201 })
+  }
+
+  if (contentType === 'LANDING_PAGE') {
+    const userPrompt = buildLandingPageUserPrompt({
+      targetKeyword: briefPlatform.targetKeyword,
+      brief,
+      client,
+      direction,
+    })
+
+    const response = await claude.messages.create({
+      model:       'claude-sonnet-4-6',
+      max_tokens:  4096,
+      system:      LANDING_PAGE_SYSTEM_PROMPT,
+      tools:       landingPageTool(),
+      tool_choice: { type: 'any' },
+      messages:    [{ role: 'user', content: userPrompt }],
+    })
+
+    const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_landing_page')
+    if (!toolUse || toolUse.type !== 'tool_use') {
+      return NextResponse.json({ error: 'AI did not return a structured landing page' }, { status: 500 })
     }
     const generated = toolUse.input as Record<string, unknown>
     const stripCite = (s: unknown) => typeof s === 'string' ? s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '') : s

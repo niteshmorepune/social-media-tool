@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PLATFORMS, CONTENT_GOALS } from '@/lib/utils'
 
 interface Client { id: string; name: string; primaryColor: string | null }
-type ContentTypeChoice = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | 'AD_COPY' | 'BLOG_POST'
+type ContentTypeChoice = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | 'AD_COPY' | 'BLOG_POST' | 'LANDING_PAGE'
 interface PlatformEntry { platform: string; contentType: ContentTypeChoice; postsCount: number; finalUrl?: string; targetKeyword?: string }
 
 export default function BriefForm({ clients }: { clients: Client[] }) {
@@ -33,7 +33,7 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
       if (exists) return prev.filter(p => !(p.platform === platform && p.contentType === contentType))
       const defaults = contentType === 'AD_COPY'
         ? { postsCount: 2, finalUrl: '' }
-        : contentType === 'BLOG_POST'
+        : contentType === 'BLOG_POST' || contentType === 'LANDING_PAGE'
         ? { postsCount: 1, targetKeyword: '' }
         : { postsCount: 4 }
       return [...prev, { platform, contentType, ...defaults }]
@@ -172,11 +172,11 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
         <p className="text-sm text-gray-500 mb-4">Select platform and content type combinations, then set how many posts per month for each.</p>
 
         <div className="space-y-4">
-          {PLATFORMS.map(({ value, label, supportsVideo, supportsCarousel, adOnly, blogOnly }) => (
+          {PLATFORMS.map(({ value, label, supportsVideo, supportsCarousel, adOnly, websiteOnly }) => (
             <div key={value}>
               <p className="text-sm font-medium text-gray-700 mb-2">{label}</p>
               <div className="flex gap-2">
-                {(blogOnly ? (['BLOG_POST'] as const) : adOnly ? (['AD_COPY'] as const) : (['IMAGE', 'VIDEO', 'CAROUSEL'] as const)).map(type => {
+                {(websiteOnly ? (['BLOG_POST', 'LANDING_PAGE'] as const) : adOnly ? (['AD_COPY'] as const) : (['IMAGE', 'VIDEO', 'CAROUSEL'] as const)).map(type => {
                   if (type === 'VIDEO' && !supportsVideo) return null
                   if (type === 'CAROUSEL' && !supportsCarousel) return null
                   const selected = isSelected(value, type)
@@ -191,7 +191,7 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
                           : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
                       }`}
                     >
-                      {type === 'AD_COPY' ? 'Ad Copy' : type === 'BLOG_POST' ? 'Blog Post' : type.charAt(0) + type.slice(1).toLowerCase()}
+                      {type === 'AD_COPY' ? 'Ad Copy' : type === 'BLOG_POST' ? 'Blog Post' : type === 'LANDING_PAGE' ? 'Landing Page' : type.charAt(0) + type.slice(1).toLowerCase()}
                     </button>
                   )
                 })}
@@ -207,7 +207,9 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
               {platforms.map((p, i) => {
                 const isAdCopy = p.contentType === 'AD_COPY'
                 const isBlogPost = p.contentType === 'BLOG_POST'
-                const contentTypeLabel = isAdCopy ? 'Ad Copy' : isBlogPost ? 'Blog Post' : p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()
+                const isLandingPage = p.contentType === 'LANDING_PAGE'
+                const needsTargetKeyword = isBlogPost || isLandingPage
+                const contentTypeLabel = isAdCopy ? 'Ad Copy' : isBlogPost ? 'Blog Post' : isLandingPage ? 'Landing Page' : p.contentType.charAt(0) + p.contentType.slice(1).toLowerCase()
                 return (
                   <div key={i} className="bg-blue-50 rounded-lg px-3 py-2.5 space-y-2">
                     <div className="flex items-center justify-between">
@@ -249,7 +251,7 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
                         className="w-full px-2.5 py-1.5 text-xs border border-blue-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-blue-300"
                       />
                     )}
-                    {isBlogPost && (
+                    {needsTargetKeyword && (
                       <input
                         type="text"
                         value={p.targetKeyword ?? ''}

@@ -1,16 +1,16 @@
 // Platform display names and metadata
 export const PLATFORMS = [
-  { value: 'Instagram',       label: 'Instagram',         supportsVideo: true,  supportsCarousel: true,  adOnly: false, blogOnly: false },
-  { value: 'Facebook',        label: 'Facebook',          supportsVideo: true,  supportsCarousel: true,  adOnly: false, blogOnly: false },
-  { value: 'LinkedIn',        label: 'LinkedIn',          supportsVideo: true,  supportsCarousel: true,  adOnly: false, blogOnly: false },
-  { value: 'Twitter',         label: 'Twitter / X',       supportsVideo: true,  supportsCarousel: false, adOnly: false, blogOnly: false },
-  { value: 'TikTok',          label: 'TikTok',            supportsVideo: true,  supportsCarousel: false, adOnly: false, blogOnly: false },
-  { value: 'Google Business', label: 'Google Business',   supportsVideo: true,  supportsCarousel: false, adOnly: false, blogOnly: false },
+  { value: 'Instagram',       label: 'Instagram',         supportsVideo: true,  supportsCarousel: true,  adOnly: false, websiteOnly: false },
+  { value: 'Facebook',        label: 'Facebook',          supportsVideo: true,  supportsCarousel: true,  adOnly: false, websiteOnly: false },
+  { value: 'LinkedIn',        label: 'LinkedIn',          supportsVideo: true,  supportsCarousel: true,  adOnly: false, websiteOnly: false },
+  { value: 'Twitter',         label: 'Twitter / X',       supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false },
+  { value: 'TikTok',          label: 'TikTok',            supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false },
+  { value: 'Google Business', label: 'Google Business',   supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false },
   // Ad platforms — AD_COPY content type only, no image/video/carousel
-  { value: 'Meta Ads',        label: 'Meta Ads (Facebook/Instagram)', supportsVideo: false, supportsCarousel: false, adOnly: true,  blogOnly: false },
-  { value: 'Google Ads',      label: 'Google Ads (Search)',           supportsVideo: false, supportsCarousel: false, adOnly: true,  blogOnly: false },
-  // Blog — BLOG_POST content type only, not a social platform
-  { value: 'Website',         label: 'Website / Blog',                supportsVideo: false, supportsCarousel: false, adOnly: false, blogOnly: true },
+  { value: 'Meta Ads',        label: 'Meta Ads (Facebook/Instagram)', supportsVideo: false, supportsCarousel: false, adOnly: true,  websiteOnly: false },
+  { value: 'Google Ads',      label: 'Google Ads (Search)',           supportsVideo: false, supportsCarousel: false, adOnly: true,  websiteOnly: false },
+  // Website content — BLOG_POST/LANDING_PAGE content types only, not a social platform
+  { value: 'Website',         label: 'Website Content',               supportsVideo: false, supportsCarousel: false, adOnly: false, websiteOnly: true },
 ] as const
 
 export const CONTENT_GOALS = [
@@ -47,6 +47,7 @@ export const CAPTION_LIMITS: Record<string, number> = {
 export function contentTypeLabel(contentType: string) {
   if (contentType === 'AD_COPY') return 'Ad Copy'
   if (contentType === 'BLOG_POST') return 'Blog Post'
+  if (contentType === 'LANDING_PAGE') return 'Landing Page'
   return contentType.charAt(0) + contentType.slice(1).toLowerCase()
 }
 
