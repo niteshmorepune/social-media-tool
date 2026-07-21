@@ -134,7 +134,7 @@ export default async function PortalPage() {
                 {/* Content cards for this brief */}
                 <div className="space-y-5 pl-4 border-l-2 border-gray-100">
                   {group.items.map(c => {
-                    const slides = c.slides as { slideNumber: number; text: string; imagePrompt: string; imageUrl?: string }[] | null
+                    const slides = c.slides as { slideNumber: number; text: string; imagePrompt: string; imageUrl?: string; altText?: string }[] | null
 
                     return (
                       <div key={c.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -169,6 +169,7 @@ export default async function PortalPage() {
                             thumbnailUrl={c.thumbnailUrl}
                             mediaStatus={c.mediaStatus}
                             slides={slides}
+                            altText={c.altText}
                             adPrimaryText={c.adPrimaryText}
                             adHeadline={c.adHeadline}
                             adDescription={c.adDescription}

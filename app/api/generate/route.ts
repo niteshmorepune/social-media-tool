@@ -28,9 +28,10 @@ function imageTools(platform: string) {
         copy:         { type: 'string', description: 'Main body copy / post text' },
         hashtags:     { type: 'string', description: '8–12 relevant hashtags as a single string' },
         callToAction: { type: 'string', description: 'Clear, compelling call to action' },
-        imagePrompt:  { type: 'string', description: 'Detailed visual description for AI image generation — include style, mood, colors, composition, lighting' }
+        imagePrompt:  { type: 'string', description: 'Detailed visual description for AI image generation — include style, mood, colors, composition, lighting' },
+        altText:      { type: 'string', description: 'Accessibility/SEO alt text describing what the image shows — concise, factual, no "image of" prefix, under 125 characters' }
       },
-      required: ['caption', 'copy', 'hashtags', 'callToAction', 'imagePrompt']
+      required: ['caption', 'copy', 'hashtags', 'callToAction', 'imagePrompt', 'altText']
     }
   }]
 }
@@ -76,9 +77,10 @@ function carouselTools(platform: string) {
             properties: {
               slideNumber:  { type: 'number' },
               text:         { type: 'string', description: 'Slide headline and short body text' },
-              imagePrompt:  { type: 'string', description: 'Detailed visual description for AI image generation for this slide' }
+              imagePrompt:  { type: 'string', description: 'Detailed visual description for AI image generation for this slide' },
+              altText:      { type: 'string', description: 'Accessibility/SEO alt text describing what this slide\'s image shows — concise, factual, under 125 characters' }
             },
-            required: ['slideNumber', 'text', 'imagePrompt']
+            required: ['slideNumber', 'text', 'imagePrompt', 'altText']
           }
         }
       },
@@ -346,6 +348,7 @@ For image/video prompts, write rich, detailed descriptions suitable for AI gener
       hashtags:        generated.hashtags as string,
       callToAction:    generated.callToAction as string,
       imagePrompt:     (generated.imagePrompt as string)  ?? null,
+      altText:         (generated.altText as string)      ?? null,
       slides:          (generated.slides as object)       ?? null,
       hook:            (generated.hook as string)         ?? null,
       script:          (generated.script as string)       ?? null,

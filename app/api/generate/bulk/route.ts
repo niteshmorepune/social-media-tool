@@ -28,9 +28,10 @@ function imageTools(platform: string) {
         copy:         { type: 'string', description: 'Main body copy' },
         hashtags:     { type: 'string', description: '8–12 hashtags' },
         callToAction: { type: 'string', description: 'Call to action' },
-        imagePrompt:  { type: 'string', description: 'Detailed visual description for AI image generation' }
+        imagePrompt:  { type: 'string', description: 'Detailed visual description for AI image generation' },
+        altText:      { type: 'string', description: 'Accessibility/SEO alt text describing what the image shows — concise, factual, no "image of" prefix, under 125 characters' }
       },
-      required: ['caption', 'copy', 'hashtags', 'callToAction', 'imagePrompt']
+      required: ['caption', 'copy', 'hashtags', 'callToAction', 'imagePrompt', 'altText']
     }
   }]
 }
@@ -76,9 +77,10 @@ function carouselTools(platform: string) {
             properties: {
               slideNumber:  { type: 'number' },
               text:         { type: 'string' },
-              imagePrompt:  { type: 'string', description: 'Detailed visual description for AI image generation for this slide' }
+              imagePrompt:  { type: 'string', description: 'Detailed visual description for AI image generation for this slide' },
+              altText:      { type: 'string', description: 'Accessibility/SEO alt text describing what this slide\'s image shows — concise, factual, under 125 characters' }
             },
-            required: ['slideNumber', 'text', 'imagePrompt']
+            required: ['slideNumber', 'text', 'imagePrompt', 'altText']
           }
         }
       },
@@ -393,6 +395,7 @@ export async function POST(req: Request) {
           hashtags:        generated.hashtags as string,
           callToAction:    generated.callToAction as string,
           imagePrompt:     (generated.imagePrompt as string)  ?? null,
+          altText:         (generated.altText as string)      ?? null,
           slides:          (generated.slides as object)       ?? null,
           hook:            (generated.hook as string)         ?? null,
           script:          (generated.script as string)       ?? null,

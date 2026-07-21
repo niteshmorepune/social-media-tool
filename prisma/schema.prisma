@@ -142,7 +142,10 @@ model Content {
 
   // ── Image & Carousel ───────────────────────────────
   imagePrompt String? @db.Text
-  // Carousel slides stored as JSON: [{slideNumber, text, imagePrompt}]
+  // Accessibility/SEO alt text for the generated image (IMAGE only —
+  // CAROUSEL slides carry their own altText inside the slides JSON below)
+  altText     String? @db.Text
+  // Carousel slides stored as JSON: [{slideNumber, text, imagePrompt, altText}]
   slides      Json?
 
   // ── Video ──────────────────────────────────────────
