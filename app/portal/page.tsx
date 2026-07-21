@@ -171,6 +171,7 @@ export default async function PortalPage() {
                             slides={slides}
                             altText={c.altText}
                             adPrimaryText={c.adPrimaryText}
+                            adAngle={c.adAngle}
                             adHeadline={c.adHeadline}
                             adDescription={c.adDescription}
                             adHeadlines={c.adHeadlines as string[] | null}

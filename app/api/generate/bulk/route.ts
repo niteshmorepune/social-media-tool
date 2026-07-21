@@ -327,6 +327,10 @@ export async function POST(req: Request) {
             adPaths:         (generated.paths as object)        ?? undefined,
             businessName:    (generated.businessName as string) ?? null,
             policyFlags:     policyFlags as unknown as object,
+            // Bulk "Generate All" always produces variant 1 of 1 per
+            // platform row (see the single-iteration loop below) — angle
+            // rotation only kicks in via the "Fill N More" flow (/api/generate)
+            adAngle:         null,
           },
         })
         results.push(content)

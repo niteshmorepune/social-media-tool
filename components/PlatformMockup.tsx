@@ -20,6 +20,7 @@ interface Props {
   slides: Slide[] | null
   altText?: string | null
   adPrimaryText?: string | null
+  adAngle?: string | null
   adHeadline?: string | null
   adDescription?: string | null
   adHeadlines?: string[] | null
@@ -427,6 +428,11 @@ function AdCopyMockup(props: Props) {
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-lg mx-auto shadow-sm">
       <div className="px-4 py-2.5 border-b border-gray-100 flex items-center gap-2">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{props.platform} · Ad Copy</span>
+        {props.adAngle && (
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+            {props.adAngle}
+          </span>
+        )}
       </div>
       <div className="px-4 py-4 space-y-3">
         {!isGoogle && (
