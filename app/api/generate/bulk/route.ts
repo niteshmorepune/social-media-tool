@@ -13,6 +13,7 @@ import { metaAdCopyTool, googleAdCopyTool, AD_COPY_SYSTEM_PROMPT, buildAdCopyUse
 import { validateMetaAdCopy, validateGoogleAdCopy, PolicyFlag } from '@/lib/ad-copy-policy'
 import { buildBrandVoiceSection } from '@/lib/brand-voice'
 import { blogPostTool, BLOG_SYSTEM_PROMPT, buildBlogUserPrompt } from '@/lib/blog-content'
+import { landingPageTool, LANDING_PAGE_SYSTEM_PROMPT, buildLandingPageUserPrompt } from '@/lib/landing-page-content'
 
 // ── Claude tool schemas (same as single generate route) ──────────────────────
 
@@ -242,6 +243,42 @@ async function generateBlogContent(
   return toolUse.input as Record<string, unknown>
 }
 
+// ── Landing page generation ────────────────────────────────────────────────────
+
+async function generateLandingPageContent(
+  bp: { targetKeyword: string | null },
+  brief: {
+    contentGoal:          string
+    campaignDescription:  string
+    specialInstructions:  string | null
+    client: {
+      name: string; industry: string; brandTone: string; targetAudience: string
+      brandKeywords?: string | null; contentDos?: string | null
+      contentDonts?: string | null; competitorsToAvoid?: string | null
+      preferredHashtags?: string | null
+    }
+  }
+): Promise<Record<string, unknown>> {
+  const userPrompt = buildLandingPageUserPrompt({
+    targetKeyword: bp.targetKeyword,
+    brief,
+    client: brief.client,
+  })
+
+  const response = await claude.messages.create({
+    model:       'claude-sonnet-4-6',
+    max_tokens:  4096,
+    system:      LANDING_PAGE_SYSTEM_PROMPT,
+    tools:       landingPageTool(),
+    tool_choice: { type: 'any' },
+    messages:    [{ role: 'user', content: userPrompt }],
+  })
+
+  const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_landing_page')
+  if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No structured landing page returned')
+  return toolUse.input as Record<string, unknown>
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
@@ -296,6 +333,29 @@ export async function POST(req: Request) {
 
       if (bp.contentType === 'BLOG_POST') {
         const generated = await generateBlogContent(bp, brief)
+        const stripCite = (s: unknown) => typeof s === 'string' ? s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '') : s
+        const content = await prisma.content.create({
+          data: {
+            briefId,
+            briefPlatformId: bp.id,
+            platform:        bp.platform,
+            contentType:     bp.contentType,
+            status:          'PENDING',
+            mediaStatus:     'NONE',
+            title:           (generated.title as string)           ?? null,
+            metaTitle:       (generated.metaTitle as string)       ?? null,
+            metaDescription: (generated.metaDescription as string) ?? null,
+            slug:            (generated.slug as string)            ?? null,
+            excerpt:         stripCite(generated.excerpt)          as string ?? null,
+            body:            stripCite(generated.body)             as string ?? null,
+          },
+        })
+        results.push(content)
+        continue
+      }
+
+      if (bp.contentType === 'LANDING_PAGE') {
+        const generated = await generateLandingPageContent(bp, brief)
         const stripCite = (s: unknown) => typeof s === 'string' ? s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '') : s
         const content = await prisma.content.create({
           data: {

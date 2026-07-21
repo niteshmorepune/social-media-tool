@@ -452,8 +452,10 @@ function AdCopyMockup(props: Props) {
   )
 }
 
-// Blog posts are reviewed as an article + a Google search-result preview,
-// not a simulated social feed post.
+// Blog posts and landing pages are reviewed as a page (title + body) plus a
+// Google search-result preview, not a simulated social feed post — both
+// content types share the same title/metaTitle/metaDescription/slug/
+// excerpt/body fields, just with different meaning (see prisma/schema.prisma).
 function BlogMockup(props: Props) {
   return (
     <div className="max-w-lg mx-auto space-y-3">
@@ -501,7 +503,7 @@ function DefaultMockup(props: Props) {
 
 export default function PlatformMockup(props: Props) {
   if (props.contentType === 'AD_COPY') return <AdCopyMockup {...props} />
-  if (props.contentType === 'BLOG_POST') return <BlogMockup {...props} />
+  if (props.contentType === 'BLOG_POST' || props.contentType === 'LANDING_PAGE') return <BlogMockup {...props} />
   switch (props.platform) {
     case 'Instagram':       return <InstagramMockup      {...props} />
     case 'Facebook':        return <FacebookMockup       {...props} />

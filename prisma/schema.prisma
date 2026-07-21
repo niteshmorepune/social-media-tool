@@ -29,6 +29,7 @@ enum ContentType {
   CAROUSEL
   AD_COPY
   BLOG_POST
+  LANDING_PAGE
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -111,9 +112,11 @@ model BriefPlatform {
   platform    String      // "Instagram" | "Facebook" | "LinkedIn" | "Twitter" | "TikTok" | "Google Business" | "Meta Ads" | "Google Ads"
   contentType ContentType
   postsCount  Int         @default(1) // number of posts (or ad variants, for AD_COPY) to generate per month
-  // Landing page the ad points to — only meaningful when contentType is AD_COPY
+  // URL of an EXISTING external landing page the ad points to — only
+  // meaningful when contentType is AD_COPY. Not related to the
+  // LANDING_PAGE content type below, which generates NEW landing page copy.
   finalUrl    String?     @db.Text
-  // SEO target keyword — meaningful for BLOG_POST (and future LANDING_PAGE)
+  // SEO target keyword — meaningful for BLOG_POST and LANDING_PAGE
   targetKeyword String?   @db.Text
 
   brief   Brief     @relation(fields: [briefId], references: [id], onDelete: Cascade)
@@ -165,13 +168,17 @@ model Content {
   // human review, never used to auto-block or auto-edit generated copy
   policyFlags    Json?   // [{severity:'error'|'warning', field, message}]
 
-  // ── Blog / SEO long-form (Blog Post) ────────────────
-  title            String?   @db.Text // H1 / display title
+  // ── Blog / SEO long-form (Blog Post, Landing Page) ──
+  // Shared by both content types — Landing Page just uses different
+  // generation prompts (lib/landing-page-content.ts): title/excerpt become
+  // the hero headline/subheadline, body holds the full page copy in
+  // Markdown sections (benefits, CTA, etc.) instead of an article.
+  title            String?   @db.Text // H1 / hero headline
   metaTitle        String?            // SEO <title>, aim ≤60 chars
   metaDescription  String?   @db.Text // aim ≤155 chars
   slug             String?
-  excerpt          String?   @db.Text // short summary for listing pages
-  body             String?   @db.Text // full article, Markdown
+  excerpt          String?   @db.Text // blog: listing summary. Landing page: hero subheadline.
+  body             String?   @db.Text // full article or page copy, Markdown
   // Set by the "Humanize & Check Originality" action — advisory, not a guarantee
   originalityScore Int?               // 0–100, higher = more original/human
   originalityNotes String?   @db.Text

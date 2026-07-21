@@ -6,7 +6,7 @@ import MediaDisplay from './MediaDisplay'
 import ApprovalActions from './ApprovalActions'
 import RegenerateMediaButton from './RegenerateMediaButton'
 import ScheduleDatePicker from './ScheduleDatePicker'
-import { getStatusColor, getStatusLabel, CAPTION_LIMITS } from '@/lib/utils'
+import { getStatusColor, getStatusLabel, contentTypeLabel, CAPTION_LIMITS } from '@/lib/utils'
 import { META_SOFT_LIMITS, GOOGLE_HARD_LIMITS, PolicyFlag } from '@/lib/ad-copy-policy'
 
 interface Revision {
@@ -258,7 +258,7 @@ export default function ContentViewDrawer({
                   <p className="font-semibold text-gray-900">{platform}</p>
                   <span className="text-gray-300">·</span>
                   <p className="text-sm text-gray-500">
-                    {contentType.charAt(0) + contentType.slice(1).toLowerCase()}
+                    {contentTypeLabel(contentType)}
                   </p>
                   <span className="text-gray-300">·</span>
                   <p className="text-sm text-gray-500">Post #{postNumber}</p>
@@ -492,7 +492,7 @@ export default function ContentViewDrawer({
                   </div>
                   {regenError && <p className="text-xs text-red-500">{regenError}</p>}
                 </div>
-                {data.contentType === 'BLOG_POST' && (
+                {(data.contentType === 'BLOG_POST' || data.contentType === 'LANDING_PAGE') && (
                   <div className="pt-1 border-t border-gray-200 space-y-2">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Humanize & Originality</p>
                     <button

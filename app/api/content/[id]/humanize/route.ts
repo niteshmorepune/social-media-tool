@@ -3,9 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { runHumanizeAndCheck } from '@/lib/humanize'
 
-// Team-only: rewrite a blog post's body to read more naturally and spot-check
-// it against live web search for close matches. Overwrites body in place
-// (like a regenerate) and logs a Revision so the change is visible in history.
+const HUMANIZABLE_TYPES = ['BLOG_POST', 'LANDING_PAGE']
+
+// Team-only: rewrite a blog post's or landing page's body to read more
+// naturally and spot-check it against live web search for close matches.
+// Overwrites body in place (like a regenerate) and logs a Revision so the
+// change is visible in history.
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session || session.user.role === 'CLIENT') {
@@ -19,8 +22,8 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   })
 
   if (!content) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (content.contentType !== 'BLOG_POST' || !content.body) {
-    return NextResponse.json({ error: 'Humanize & Check only applies to a blog post with a body' }, { status: 400 })
+  if (!HUMANIZABLE_TYPES.includes(content.contentType) || !content.body) {
+    return NextResponse.json({ error: 'Humanize & Check only applies to a blog post or landing page with a body' }, { status: 400 })
   }
 
   let result
