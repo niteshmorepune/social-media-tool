@@ -3,6 +3,7 @@ interface Slide {
   text: string
   imagePrompt: string
   imageUrl?: string
+  altText?: string
 }
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
   thumbnailUrl: string | null
   mediaStatus: string
   slides: Slide[] | null
+  altText?: string | null
   adPrimaryText?: string | null
   adHeadline?: string | null
   adDescription?: string | null
@@ -37,6 +39,7 @@ interface MediaProps {
   thumbnailUrl: string | null
   mediaStatus: string
   slides: Slide[] | null
+  altText?: string | null
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -58,13 +61,14 @@ function extractMediaProps(p: Props): MediaProps {
     thumbnailUrl: p.thumbnailUrl,
     mediaStatus:  p.mediaStatus,
     slides:       p.slides,
+    altText:      p.altText,
   }
 }
 
 // Lean media renderer — no extra margins / rounding from MediaDisplay
-function MockupMedia({ contentType, imageUrl, videoUrl, thumbnailUrl, mediaStatus, slides }: MediaProps) {
+function MockupMedia({ contentType, imageUrl, videoUrl, thumbnailUrl, mediaStatus, slides, altText }: MediaProps) {
   if (contentType === 'IMAGE') {
-    if (imageUrl) return <img src={imageUrl} alt="Post" className="w-full object-cover block" />
+    if (imageUrl) return <img src={imageUrl} alt={altText || 'Post'} className="w-full object-cover block" />
     if (mediaStatus === 'GENERATING') return (
       <div className="flex flex-col items-center justify-center h-52 bg-blue-50">
         <div className="w-6 h-6 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-2" />
@@ -99,7 +103,7 @@ function MockupMedia({ contentType, imageUrl, videoUrl, thumbnailUrl, mediaStatu
     const withImages = slides?.filter(s => s.imageUrl) ?? []
     if (withImages.length > 0) return (
       <div className="relative">
-        <img src={withImages[0].imageUrl!} alt="Slide 1" className="w-full object-cover block aspect-square" />
+        <img src={withImages[0].imageUrl!} alt={withImages[0].altText || 'Slide 1'} className="w-full object-cover block aspect-square" />
         {withImages.length > 1 && (
           <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
             1 / {withImages.length}

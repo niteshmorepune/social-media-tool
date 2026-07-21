@@ -83,7 +83,7 @@ export default async function ApprovalsPage({
   const serializedContent = contentList.map(c => ({
     ...c,
     scheduledDate: c.scheduledDate ? c.scheduledDate.toISOString() : null,
-    slides: c.slides as { slideNumber: number; text: string; imagePrompt: string; imageUrl?: string }[] | null,
+    slides: c.slides as { slideNumber: number; text: string; imagePrompt: string; imageUrl?: string; altText?: string }[] | null,
     brief: {
       ...c.brief,
       scheduledMonth: c.brief.scheduledMonth.toISOString(),

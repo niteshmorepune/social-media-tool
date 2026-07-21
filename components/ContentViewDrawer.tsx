@@ -22,6 +22,7 @@ interface Slide {
   text: string
   imagePrompt: string
   imageUrl?: string
+  altText?: string
 }
 
 interface FullContent {
@@ -38,6 +39,7 @@ interface FullContent {
   hashtags: string | null
   callToAction: string | null
   imagePrompt: string | null
+  altText: string | null
   videoConcept: string | null
   thumbnailPrompt: string | null
   duration: string | null
@@ -316,6 +318,7 @@ export default function ContentViewDrawer({
                     thumbnailUrl={data.thumbnailUrl}
                     mediaStatus={data.mediaStatus}
                     slides={data.slides}
+                    altText={data.altText}
                   />
 
                   {data.policyFlags && data.policyFlags.length > 0 && <PolicyFlags flags={data.policyFlags} />}
@@ -381,6 +384,7 @@ export default function ContentViewDrawer({
                   {data.hashtags && <Field label="Hashtags" value={data.hashtags} accent charLimit={platform === 'Twitter' ? CAPTION_LIMITS['Twitter'] : undefined} />}
                   {data.callToAction && <Field label="Call to Action" value={data.callToAction} />}
                   {data.imagePrompt && <Field label="Image Prompt" value={data.imagePrompt} muted />}
+                  {data.altText && <Field label="Alt Text" value={data.altText} />}
                   {data.videoConcept && <Field label="Video Concept" value={data.videoConcept} muted />}
                   {data.thumbnailPrompt && <Field label="Thumbnail Prompt" value={data.thumbnailPrompt} muted />}
                   {data.duration && (
@@ -398,6 +402,7 @@ export default function ContentViewDrawer({
                           <div key={slide.slideNumber} className="bg-gray-50 rounded-lg p-3">
                             <p className="text-xs font-medium text-gray-500 mb-1">Slide {slide.slideNumber}</p>
                             <p className="text-sm text-gray-800">{slide.text}</p>
+                            {slide.altText && <p className="text-xs text-gray-400 italic mt-1">Alt text: {slide.altText}</p>}
                           </div>
                         ))}
                       </div>

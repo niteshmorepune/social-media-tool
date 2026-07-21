@@ -5,6 +5,7 @@ interface Slide {
   text:        string
   imagePrompt: string
   imageUrl?:   string
+  altText?:    string
 }
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
   thumbnailUrl?: string | null
   mediaStatus?: string | null
   slides?:      Slide[] | null
+  altText?:     string | null
 }
 
 // Insert fl_attachment into a Cloudinary URL to force a browser download.
@@ -46,6 +48,7 @@ export default function MediaDisplay({
   thumbnailUrl,
   mediaStatus,
   slides,
+  altText,
 }: Props) {
   // ── IMAGE ──────────────────────────────────────────────────────────────────
   if (contentType === 'IMAGE') {
@@ -54,7 +57,7 @@ export default function MediaDisplay({
         <div className="mb-4">
           <img
             src={imageUrl}
-            alt="Generated content"
+            alt={altText || 'Generated content'}
             className="w-full rounded-xl object-cover"
             style={{ maxHeight: '500px' }}
           />
@@ -143,7 +146,7 @@ export default function MediaDisplay({
               <div key={slide.slideNumber} className="relative rounded-lg overflow-hidden bg-gray-100 group">
                 <img
                   src={slide.imageUrl!}
-                  alt={`Slide ${slide.slideNumber}`}
+                  alt={slide.altText || `Slide ${slide.slideNumber}`}
                   className="w-full object-cover aspect-square"
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-2 flex items-end justify-between">

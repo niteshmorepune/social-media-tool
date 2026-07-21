@@ -13,6 +13,7 @@ interface Slide {
   text: string
   imagePrompt: string
   imageUrl?: string
+  altText?: string
 }
 
 interface SerializedContent {
@@ -30,6 +31,7 @@ interface SerializedContent {
   hashtags: string | null
   callToAction: string | null
   imagePrompt: string | null
+  altText: string | null
   videoConcept: string | null
   thumbnailPrompt: string | null
   duration: string | null
@@ -212,6 +214,7 @@ export default function ApprovalsContent({ contentList, userRole }: Props) {
                   thumbnailUrl={c.thumbnailUrl}
                   mediaStatus={c.mediaStatus}
                   slides={c.slides}
+                  altText={c.altText}
                 />
               </div>
 
@@ -225,6 +228,7 @@ export default function ApprovalsContent({ contentList, userRole }: Props) {
                 {c.hashtags && <Field label="Hashtags" value={c.hashtags} accent />}
                 {c.callToAction && <Field label="Call to Action" value={c.callToAction} />}
                 {c.imagePrompt && <Field label="Image Prompt" value={c.imagePrompt} muted />}
+                {c.altText && <Field label="Alt Text" value={c.altText} />}
                 {c.videoConcept && <Field label="Video Concept" value={c.videoConcept} muted />}
                 {c.thumbnailPrompt && <Field label="Thumbnail Prompt" value={c.thumbnailPrompt} muted />}
                 {c.duration && (
