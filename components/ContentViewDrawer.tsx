@@ -51,6 +51,7 @@ interface FullContent {
   slides: Slide[] | null
   revisions: Revision[]
   adPrimaryText: string | null
+  adAngle: string | null
   adHeadline: string | null
   adDescription: string | null
   adHeadlines: string[] | null
@@ -323,6 +324,11 @@ export default function ContentViewDrawer({
 
                   {data.policyFlags && data.policyFlags.length > 0 && <PolicyFlags flags={data.policyFlags} />}
 
+                  {data.adAngle && (
+                    <span className="inline-block text-xs font-medium px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                      A/B angle: {data.adAngle}
+                    </span>
+                  )}
                   {data.adPrimaryText && <Field label="Primary Text" value={data.adPrimaryText} charLimit={META_SOFT_LIMITS.primaryText} softLimit />}
                   {data.adHeadline && <Field label="Headline" value={data.adHeadline} charLimit={META_SOFT_LIMITS.headline} softLimit />}
                   {data.adDescription && <Field label="Description" value={data.adDescription} charLimit={META_SOFT_LIMITS.description} softLimit />}

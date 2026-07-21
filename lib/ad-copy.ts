@@ -17,6 +17,41 @@ export const META_CTA_OPTIONS = [
   'Book Now', 'Download', 'Subscribe', 'Get Offer', 'Send Message',
 ] as const
 
+// Psychological angles rotated across multi-variant AD_COPY generation
+// (see getAdAngle below) so a "3 variants" brief produces a real, labeled
+// A/B test set — each variant deliberately tests a different hook — instead
+// of 3 differently-worded takes on the same angle.
+export const AD_ANGLES = [
+  {
+    name: 'Direct Offer',
+    guidance: 'Lead with the offer itself, plainly and confidently — what they get, stated directly. No framing device, no story, just the offer and why it matters.',
+  },
+  {
+    name: 'Urgency / Scarcity',
+    guidance: 'Lead with a genuine reason to act now (limited slots, a real deadline, seasonal timing) — never fabricate urgency that isn\'t in the brief; if the brief gives no real deadline/limit, use "why wait" framing instead of inventing a fake countdown.',
+  },
+  {
+    name: 'Social Proof',
+    guidance: 'Lead with credibility signals — experience, client volume, results delivered, trust markers. Only use specifics (numbers, client counts) if the brief actually supports them; otherwise keep it general ("trusted by businesses across Pune") rather than inventing a stat.',
+  },
+  {
+    name: 'Curiosity Gap',
+    guidance: 'Open with a question or an incomplete thought that makes the reader want the answer — then resolve it with the offer. Avoid clickbait that oversells what the ad actually delivers.',
+  },
+  {
+    name: 'Benefit-Led',
+    guidance: 'Lead with the single biggest outcome/benefit for the customer, stated as a result they\'ll experience — not a feature of the service.',
+  },
+  {
+    name: 'Problem-Agitate-Solve',
+    guidance: 'Open by naming the specific pain point the audience has, briefly agitate why it matters if unsolved, then present the offer as the resolution.',
+  },
+] as const
+
+export function getAdAngle(variantIndex: number) {
+  return AD_ANGLES[(variantIndex - 1) % AD_ANGLES.length]
+}
+
 // ── Claude tool schemas ───────────────────────────────────────────────────────
 
 export function metaAdCopyTool() {
@@ -80,6 +115,7 @@ export function buildAdCopyUserPrompt(params: {
   finalUrl: string | null
   variantIndex: number
   totalVariants: number
+  angle?: { name: string; guidance: string } | null
   brief: {
     contentGoal: string
     campaignDescription: string
@@ -97,10 +133,12 @@ export function buildAdCopyUserPrompt(params: {
   }
   direction?: string
 }): string {
-  const { platform, finalUrl, variantIndex, totalVariants, brief, client, direction } = params
+  const { platform, finalUrl, variantIndex, totalVariants, angle, brief, client, direction } = params
 
   const varietyNote = totalVariants > 1
-    ? `\nVARIANT NOTE: This is ad variant ${variantIndex} of ${totalVariants} for this campaign. Use a distinct angle/hook/benefit from the other variants — don't just reword the same idea.`
+    ? angle
+      ? `\nA/B TEST ANGLE (this is variant ${variantIndex} of ${totalVariants} — write this one specifically to test the "${angle.name}" angle): ${angle.guidance}`
+      : `\nVARIANT NOTE: This is ad variant ${variantIndex} of ${totalVariants} for this campaign. Use a distinct angle/hook/benefit from the other variants — don't just reword the same idea.`
     : ''
 
   const directionNote = direction?.trim()

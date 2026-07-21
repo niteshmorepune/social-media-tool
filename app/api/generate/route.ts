@@ -9,7 +9,7 @@ import {
   generateThumbnailAndStartVideo,
   SlideInput,
 } from '@/lib/media-generation'
-import { metaAdCopyTool, googleAdCopyTool, AD_COPY_SYSTEM_PROMPT, buildAdCopyUserPrompt } from '@/lib/ad-copy'
+import { metaAdCopyTool, googleAdCopyTool, AD_COPY_SYSTEM_PROMPT, buildAdCopyUserPrompt, getAdAngle } from '@/lib/ad-copy'
 import { validateMetaAdCopy, validateGoogleAdCopy } from '@/lib/ad-copy-policy'
 import { buildBrandVoiceSection } from '@/lib/brand-voice'
 import { blogPostTool, BLOG_SYSTEM_PROMPT, buildBlogUserPrompt } from '@/lib/blog-content'
@@ -127,11 +127,13 @@ export async function POST(req: Request) {
   }
 
   if (contentType === 'AD_COPY') {
+    const angle = totalPosts > 1 ? getAdAngle(postNumber) : null
     const userPrompt = buildAdCopyUserPrompt({
       platform: platform as 'Meta Ads' | 'Google Ads',
       finalUrl: briefPlatform.finalUrl,
       variantIndex: postNumber,
       totalVariants: totalPosts,
+      angle,
       brief,
       client,
       direction,
@@ -185,6 +187,7 @@ export async function POST(req: Request) {
         adPaths:         (generated.paths as object)        ?? undefined,
         businessName:    (generated.businessName as string) ?? null,
         policyFlags:     policyFlags as unknown as object,
+        adAngle:         angle?.name ?? null,
       },
     })
 

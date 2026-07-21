@@ -170,6 +170,11 @@ model Content {
   // Validator output against docs/ad-copy-policy-checklist.md — flagged for
   // human review, never used to auto-block or auto-edit generated copy
   policyFlags    Json?   // [{severity:'error'|'warning', field, message}]
+  // Which psychological angle this variant tests (see AD_ANGLES in
+  // lib/ad-copy.ts) — assigned automatically when postsCount > 1, so
+  // multi-variant AD_COPY generation produces a real, labeled A/B test set
+  // instead of just "different" copy. Null for single-variant briefs.
+  adAngle        String?
 
   // ── Blog / SEO long-form (Blog Post, Landing Page) ──
   // Shared by both content types — Landing Page just uses different
