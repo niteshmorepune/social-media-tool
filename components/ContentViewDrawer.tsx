@@ -8,6 +8,7 @@ import RegenerateMediaButton from './RegenerateMediaButton'
 import ScheduleDatePicker from './ScheduleDatePicker'
 import { getStatusColor, getStatusLabel, contentTypeLabel, CAPTION_LIMITS } from '@/lib/utils'
 import { META_SOFT_LIMITS, GOOGLE_HARD_LIMITS, PolicyFlag } from '@/lib/ad-copy-policy'
+import { buildArticleSchema, buildServiceSchema } from '@/lib/seo-schema'
 
 interface Revision {
   id: string
@@ -64,6 +65,9 @@ interface FullContent {
   originalityScore: number | null
   originalityNotes: string | null
   humanizedAt: string | null
+  createdAt: string
+  updatedAt: string
+  brief: { client: { name: string; website: string | null } }
 }
 
 interface Props {
@@ -94,6 +98,7 @@ export default function ContentViewDrawer({
   const [regenError, setRegenError] = useState('')
   const [humanizing, setHumanizing] = useState(false)
   const [humanizeError, setHumanizeError] = useState('')
+  const [schemaCopied, setSchemaCopied] = useState(false)
   const [noteText, setNoteText]   = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
   const [replyText, setReplyText] = useState('')
@@ -340,6 +345,34 @@ export default function ContentViewDrawer({
                   {data.excerpt && <Field label="Excerpt" value={data.excerpt} />}
                   {data.body && <Field label="Body" value={data.body} />}
 
+                  {(data.contentType === 'BLOG_POST' || data.contentType === 'LANDING_PAGE') && data.title && (
+                    <SeoMetaPack
+                      jsonLd={
+                        data.contentType === 'BLOG_POST'
+                          ? buildArticleSchema({
+                              title: data.title,
+                              metaDescription: data.metaDescription,
+                              slug: data.slug,
+                              client: data.brief.client,
+                              createdAt: data.createdAt,
+                              updatedAt: data.updatedAt,
+                            })
+                          : buildServiceSchema({
+                              title: data.title,
+                              metaDescription: data.metaDescription,
+                              slug: data.slug,
+                              client: data.brief.client,
+                            })
+                      }
+                      copied={schemaCopied}
+                      onCopy={async (text) => {
+                        await navigator.clipboard.writeText(text)
+                        setSchemaCopied(true)
+                        setTimeout(() => setSchemaCopied(false), 2000)
+                      }}
+                    />
+                  )}
+
                   {data.caption && <Field label="Caption" value={data.caption} charLimit={CAPTION_LIMITS[platform]} />}
                   {data.hook && <Field label="Hook (first 3 sec)" value={data.hook} />}
                   {data.copy && <Field label="Copy" value={data.copy} />}
@@ -563,6 +596,28 @@ function FieldList({ label, values, charLimit }: { label: string; values: string
           )
         })}
       </div>
+    </div>
+  )
+}
+
+// Schema.org JSON-LD, computed client-side from already-reviewed fields
+// (lib/seo-schema.ts) — ready to paste into the page's <head>.
+function SeoMetaPack({ jsonLd, copied, onCopy }: { jsonLd: object; copied: boolean; onCopy: (text: string) => void }) {
+  const text = JSON.stringify(jsonLd, null, 2)
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">SEO Meta-Pack — Schema Markup (JSON-LD)</p>
+        <button
+          type="button"
+          onClick={() => onCopy(`<script type="application/ld+json">\n${text}\n</script>`)}
+          className="text-xs text-blue-600 hover:underline shrink-0"
+        >
+          {copied ? 'Copied!' : 'Copy <script> tag'}
+        </button>
+      </div>
+      <pre className="text-xs text-gray-700 bg-gray-50 rounded-lg px-3 py-2 overflow-x-auto whitespace-pre-wrap">{text}</pre>
+      <p className="text-xs text-gray-400 mt-1">Paste the copied &lt;script&gt; tag into the page&apos;s &lt;head&gt; for rich Google search results.</p>
     </div>
   )
 }

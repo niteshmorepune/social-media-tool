@@ -11,7 +11,12 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const { id } = await params
   const content = await prisma.content.findUnique({
     where: { id },
-    include: { revisions: { include: { requestedBy: { select: { name: true, role: true } } }, orderBy: { createdAt: 'asc' } } }
+    include: {
+      revisions: { include: { requestedBy: { select: { name: true, role: true } } }, orderBy: { createdAt: 'asc' } },
+      // Needed client-side to build Schema.org JSON-LD (SEO meta-pack) for
+      // Blog Post / Landing Page content — see lib/seo-schema.ts.
+      brief: { include: { client: { select: { name: true, website: true } } } },
+    }
   })
 
   if (!content) return NextResponse.json({ error: 'Not found' }, { status: 404 })
