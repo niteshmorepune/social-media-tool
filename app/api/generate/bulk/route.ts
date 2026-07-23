@@ -14,6 +14,7 @@ import { validateMetaAdCopy, validateGoogleAdCopy, PolicyFlag } from '@/lib/ad-c
 import { buildBrandVoiceSection } from '@/lib/brand-voice'
 import { blogPostTool, BLOG_SYSTEM_PROMPT, buildBlogUserPrompt } from '@/lib/blog-content'
 import { landingPageTool, LANDING_PAGE_SYSTEM_PROMPT, buildLandingPageUserPrompt } from '@/lib/landing-page-content'
+import { logAiUsage } from '@/lib/ai-usage'
 
 // ── Claude tool schemas (same as single generate route) ──────────────────────
 
@@ -101,12 +102,13 @@ async function generateTextContent(
     campaignDescription:  string
     specialInstructions:  string | null
     client: {
-      name: string; industry: string; brandTone: string; targetAudience: string
+      id: string; name: string; industry: string; brandTone: string; targetAudience: string
       brandKeywords?: string | null; contentDos?: string | null
       contentDonts?: string | null; competitorsToAvoid?: string | null
       preferredHashtags?: string | null
     }
-  }
+  },
+  userId: string
 ): Promise<Record<string, unknown>> {
   const { client } = brief
 
@@ -149,6 +151,7 @@ For image/video prompts, write rich, detailed descriptions suitable for AI gener
     tool_choice: { type: 'any' },
     messages:    [{ role: 'user', content: userPrompt }]
   })
+  await logAiUsage({ userId, clientId: client.id, toolId: contentType, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens })
 
   const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === toolName)
   if (!toolUse || toolUse.type !== 'tool_use') throw new Error(`No structured output for ${platform}`)
@@ -164,11 +167,12 @@ async function generateAdCopyContent(
     campaignDescription:  string
     specialInstructions:  string | null
     client: {
-      name: string; industry: string; brandTone: string; targetAudience: string
+      id: string; name: string; industry: string; brandTone: string; targetAudience: string
       brandKeywords?: string | null; contentDos?: string | null
       contentDonts?: string | null; competitorsToAvoid?: string | null
     }
-  }
+  },
+  userId: string
 ): Promise<{ generated: Record<string, unknown>; policyFlags: PolicyFlag[] }> {
   const userPrompt = buildAdCopyUserPrompt({
     platform:      bp.platform as 'Meta Ads' | 'Google Ads',
@@ -190,6 +194,7 @@ async function generateAdCopyContent(
     tool_choice: { type: 'any' },
     messages:    [{ role: 'user', content: userPrompt }],
   })
+  await logAiUsage({ userId, clientId: brief.client.id, toolId: 'AD_COPY', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens })
 
   const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === toolName)
   if (!toolUse || toolUse.type !== 'tool_use') throw new Error(`No structured ad copy for ${bp.platform}`)
@@ -220,12 +225,13 @@ async function generateBlogContent(
     campaignDescription:  string
     specialInstructions:  string | null
     client: {
-      name: string; industry: string; brandTone: string; targetAudience: string
+      id: string; name: string; industry: string; brandTone: string; targetAudience: string
       brandKeywords?: string | null; contentDos?: string | null
       contentDonts?: string | null; competitorsToAvoid?: string | null
       preferredHashtags?: string | null
     }
-  }
+  },
+  userId: string
 ): Promise<Record<string, unknown>> {
   const userPrompt = buildBlogUserPrompt({
     targetKeyword: bp.targetKeyword,
@@ -241,6 +247,7 @@ async function generateBlogContent(
     tool_choice: { type: 'any' },
     messages:    [{ role: 'user', content: userPrompt }],
   })
+  await logAiUsage({ userId, clientId: brief.client.id, toolId: 'BLOG_POST', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens })
 
   const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_blog_post')
   if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No structured blog post returned')
@@ -256,12 +263,13 @@ async function generateLandingPageContent(
     campaignDescription:  string
     specialInstructions:  string | null
     client: {
-      name: string; industry: string; brandTone: string; targetAudience: string
+      id: string; name: string; industry: string; brandTone: string; targetAudience: string
       brandKeywords?: string | null; contentDos?: string | null
       contentDonts?: string | null; competitorsToAvoid?: string | null
       preferredHashtags?: string | null
     }
-  }
+  },
+  userId: string
 ): Promise<Record<string, unknown>> {
   const userPrompt = buildLandingPageUserPrompt({
     targetKeyword: bp.targetKeyword,
@@ -277,6 +285,7 @@ async function generateLandingPageContent(
     tool_choice: { type: 'any' },
     messages:    [{ role: 'user', content: userPrompt }],
   })
+  await logAiUsage({ userId, clientId: brief.client.id, toolId: 'LANDING_PAGE', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens })
 
   const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_landing_page')
   if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No structured landing page returned')
@@ -311,7 +320,7 @@ export async function POST(req: Request) {
   for (const bp of brief.platforms) {
     try {
       if (bp.contentType === 'AD_COPY') {
-        const { generated, policyFlags } = await generateAdCopyContent(bp, brief)
+        const { generated, policyFlags } = await generateAdCopyContent(bp, brief, session.user.id)
         const content = await prisma.content.create({
           data: {
             briefId,
@@ -340,7 +349,7 @@ export async function POST(req: Request) {
       }
 
       if (bp.contentType === 'BLOG_POST') {
-        const generated = await generateBlogContent(bp, brief)
+        const generated = await generateBlogContent(bp, brief, session.user.id)
         const stripCite = (s: unknown) => typeof s === 'string' ? s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '') : s
         const content = await prisma.content.create({
           data: {
@@ -363,7 +372,7 @@ export async function POST(req: Request) {
       }
 
       if (bp.contentType === 'LANDING_PAGE') {
-        const generated = await generateLandingPageContent(bp, brief)
+        const generated = await generateLandingPageContent(bp, brief, session.user.id)
         const stripCite = (s: unknown) => typeof s === 'string' ? s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '') : s
         const content = await prisma.content.create({
           data: {
@@ -385,7 +394,7 @@ export async function POST(req: Request) {
         continue
       }
 
-      const generated = await generateTextContent(bp.platform, bp.contentType, brief)
+      const generated = await generateTextContent(bp.platform, bp.contentType, brief, session.user.id)
 
       // Save text content immediately
       const content = await prisma.content.create({

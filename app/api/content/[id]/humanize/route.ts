@@ -2,6 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { runHumanizeAndCheck } from '@/lib/humanize'
+import { logAiUsage } from '@/lib/ai-usage'
 
 const HUMANIZABLE_TYPES = ['BLOG_POST', 'LANDING_PAGE']
 
@@ -18,7 +19,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
   const { id } = await params
   const content = await prisma.content.findUnique({
     where: { id },
-    include: { briefPlatform: true },
+    include: { briefPlatform: true, brief: { select: { clientId: true } } },
   })
 
   if (!content) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -33,6 +34,14 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     console.error('Humanize & Check error:', err)
     return NextResponse.json({ error: 'Humanize & Check failed — try again' }, { status: 500 })
   }
+
+  await logAiUsage({
+    userId: session.user.id,
+    clientId: content.brief.clientId,
+    toolId: 'HUMANIZE',
+    inputTokens: result.inputTokens,
+    outputTokens: result.outputTokens,
+  })
 
   const originalityNotes = result.flags.length
     ? result.flags.map(f => `"${f.excerpt}" — ${f.note} (${f.sourceUrl})`).join('\n')

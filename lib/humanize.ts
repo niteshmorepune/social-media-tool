@@ -34,6 +34,8 @@ export interface HumanizeResult {
   revisedBody: string
   originalityScore: number
   flags: OriginalityFlag[]
+  inputTokens: number
+  outputTokens: number
 }
 
 const HUMANIZE_SYSTEM_PROMPT = `You are an editor who does two jobs on a given blog article body, in order:
@@ -113,5 +115,7 @@ export async function runHumanizeAndCheck(body: string, targetKeyword: string | 
     revisedBody: stripCite(generated.revisedBody),
     originalityScore: Math.max(0, Math.min(100, Math.round(generated.originalityScore))),
     flags: flags.map(f => ({ ...f, excerpt: stripCite(f.excerpt ?? ''), note: stripCite(f.note ?? '') })),
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
   }
 }
