@@ -38,13 +38,15 @@ function imageTools(platform: string) {
 
 function videoTools(platform: string) {
   const durations = VIDEO_DURATIONS[platform]?.join(', ') ?? '30 seconds, 60 seconds'
+  const isYouTube = platform === 'YouTube'
   return [{
     name: 'generate_video_content',
     description: `Generate complete video content for ${platform}`,
     input_schema: {
       type: 'object' as const,
       properties: {
-        caption:         { type: 'string' },
+        ...(isYouTube ? { title: { type: 'string', description: 'SEO-friendly video title — under 70 characters so it does not truncate in search/suggested' } } : {}),
+        caption:         { type: 'string', description: isYouTube ? 'Video description' : undefined },
         hook:            { type: 'string', description: 'First 3 seconds script' },
         script:          { type: 'string', description: 'Full spoken script' },
         onScreenText:    { type: 'string', description: 'Text overlay suggestions' },
@@ -54,7 +56,7 @@ function videoTools(platform: string) {
         duration:        { type: 'string', description: `Options: ${durations}` },
         thumbnailPrompt: { type: 'string', description: 'Detailed visual description for AI thumbnail generation' }
       },
-      required: ['caption', 'hook', 'script', 'onScreenText', 'hashtags', 'callToAction', 'videoConcept', 'duration', 'thumbnailPrompt']
+      required: [...(isYouTube ? ['title'] : []), 'caption', 'hook', 'script', 'onScreenText', 'hashtags', 'callToAction', 'videoConcept', 'duration', 'thumbnailPrompt']
     }
   }]
 }
@@ -394,6 +396,7 @@ export async function POST(req: Request) {
           contentType:     bp.contentType,
           status:          'PENDING',
           mediaStatus:     skipMedia ? 'NONE' : 'GENERATING',
+          title:           (generated.title as string)         ?? null,
           caption:         generated.caption as string,
           copy:            (generated.copy as string)         ?? null,
           hashtags:        generated.hashtags as string,

@@ -1,16 +1,18 @@
 // Platform display names and metadata
 export const PLATFORMS = [
-  { value: 'Instagram',       label: 'Instagram',         supportsVideo: true,  supportsCarousel: true,  adOnly: false, websiteOnly: false },
-  { value: 'Facebook',        label: 'Facebook',          supportsVideo: true,  supportsCarousel: true,  adOnly: false, websiteOnly: false },
-  { value: 'LinkedIn',        label: 'LinkedIn',          supportsVideo: true,  supportsCarousel: true,  adOnly: false, websiteOnly: false },
-  { value: 'Twitter',         label: 'Twitter / X',       supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false },
-  { value: 'TikTok',          label: 'TikTok',            supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false },
-  { value: 'Google Business', label: 'Google Business',   supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false },
+  { value: 'Instagram',       label: 'Instagram',         supportsVideo: true,  supportsCarousel: true,  adOnly: false, websiteOnly: false, videoOnly: false },
+  { value: 'Facebook',        label: 'Facebook',          supportsVideo: true,  supportsCarousel: true,  adOnly: false, websiteOnly: false, videoOnly: false },
+  { value: 'LinkedIn',        label: 'LinkedIn',          supportsVideo: true,  supportsCarousel: true,  adOnly: false, websiteOnly: false, videoOnly: false },
+  { value: 'Twitter',         label: 'Twitter / X',       supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false, videoOnly: false },
+  { value: 'TikTok',          label: 'TikTok',            supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false, videoOnly: false },
+  { value: 'Google Business', label: 'Google Business',   supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false, videoOnly: false },
+  // Video-only — YouTube's native format is video (long-form or Shorts); IMAGE/CAROUSEL don't map to a real primary post type here
+  { value: 'YouTube',         label: 'YouTube',           supportsVideo: true,  supportsCarousel: false, adOnly: false, websiteOnly: false, videoOnly: true },
   // Ad platforms — AD_COPY content type only, no image/video/carousel
-  { value: 'Meta Ads',        label: 'Meta Ads (Facebook/Instagram)', supportsVideo: false, supportsCarousel: false, adOnly: true,  websiteOnly: false },
-  { value: 'Google Ads',      label: 'Google Ads (Search)',           supportsVideo: false, supportsCarousel: false, adOnly: true,  websiteOnly: false },
+  { value: 'Meta Ads',        label: 'Meta Ads (Facebook/Instagram)', supportsVideo: false, supportsCarousel: false, adOnly: true,  websiteOnly: false, videoOnly: false },
+  { value: 'Google Ads',      label: 'Google Ads (Search)',           supportsVideo: false, supportsCarousel: false, adOnly: true,  websiteOnly: false, videoOnly: false },
   // Website content — BLOG_POST/LANDING_PAGE content types only, not a social platform
-  { value: 'Website',         label: 'Website Content',               supportsVideo: false, supportsCarousel: false, adOnly: false, websiteOnly: true },
+  { value: 'Website',         label: 'Website Content',               supportsVideo: false, supportsCarousel: false, adOnly: false, websiteOnly: true,  videoOnly: false },
 ] as const
 
 export const CONTENT_GOALS = [
@@ -33,6 +35,7 @@ export const VIDEO_DURATIONS: Record<string, string[]> = {
   Twitter:   ['30 seconds', '60 seconds', '2 minutes'],
   TikTok:    ['15 seconds', '30 seconds', '60 seconds'],
   'Google Business': ['30 seconds', '60 seconds'],
+  YouTube:   ['60 seconds (Shorts)', '3 minutes', '8 minutes', '12 minutes'],
 }
 
 export const CAPTION_LIMITS: Record<string, number> = {
@@ -42,6 +45,7 @@ export const CAPTION_LIMITS: Record<string, number> = {
   Twitter:          280,
   TikTok:           2200,
   'Google Business': 1500,
+  YouTube:          5000, // video description limit
 }
 
 export function contentTypeLabel(contentType: string) {

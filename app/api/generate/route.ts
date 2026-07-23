@@ -38,13 +38,15 @@ function imageTools(platform: string) {
 
 function videoTools(platform: string) {
   const durations = VIDEO_DURATIONS[platform]?.join(', ') ?? '30 seconds, 60 seconds'
+  const isYouTube = platform === 'YouTube'
   return [{
     name: 'generate_video_content',
     description: `Generate complete video content for ${platform}`,
     input_schema: {
       type: 'object' as const,
       properties: {
-        caption:         { type: 'string', description: `Caption for the post, max ${CAPTION_LIMITS[platform] ?? 2200} characters` },
+        ...(isYouTube ? { title: { type: 'string', description: 'SEO-friendly video title — the single most important element for search/suggested placement, ideally under 70 characters so it does not truncate' } } : {}),
+        caption:         { type: 'string', description: isYouTube ? `Video description, max ${CAPTION_LIMITS[platform] ?? 2200} characters` : `Caption for the post, max ${CAPTION_LIMITS[platform] ?? 2200} characters` },
         hook:            { type: 'string', description: 'Attention-grabbing opening line / first 3 seconds script' },
         script:          { type: 'string', description: 'Full spoken script for the video' },
         onScreenText:    { type: 'string', description: 'Text overlay suggestions shown on screen during the video' },
@@ -54,7 +56,7 @@ function videoTools(platform: string) {
         duration:        { type: 'string', description: `Recommended duration. Options: ${durations}` },
         thumbnailPrompt: { type: 'string', description: 'Detailed visual description for AI thumbnail generation — include subject, style, colors, composition' }
       },
-      required: ['caption', 'hook', 'script', 'onScreenText', 'hashtags', 'callToAction', 'videoConcept', 'duration', 'thumbnailPrompt']
+      required: [...(isYouTube ? ['title'] : []), 'caption', 'hook', 'script', 'onScreenText', 'hashtags', 'callToAction', 'videoConcept', 'duration', 'thumbnailPrompt']
     }
   }]
 }
@@ -346,6 +348,7 @@ For image/video prompts, write rich, detailed descriptions suitable for AI gener
       contentType,
       status:          'PENDING',
       mediaStatus:     skipMedia ? 'NONE' : 'GENERATING',
+      title:           (generated.title as string)         ?? null,
       caption:         generated.caption as string,
       copy:            (generated.copy as string)         ?? null,
       hashtags:        generated.hashtags as string,

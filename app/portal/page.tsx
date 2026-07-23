@@ -161,6 +161,7 @@ export default async function PortalPage() {
                             platform={c.platform}
                             contentType={c.contentType}
                             clientName={c.brief.client.name}
+                            title={c.title}
                             caption={c.caption}
                             hashtags={c.hashtags}
                             callToAction={c.callToAction}

@@ -21,6 +21,7 @@ const PLATFORM_MAP: Record<string, string> = {
   'Twitter':         'TWITTER',
   'TikTok':          'TIKTOK',
   'Google Business': 'GBP',
+  'YouTube':         'YOUTUBE',
 }
 
 export async function pushBriefToDrishti(briefId: string): Promise<void> {

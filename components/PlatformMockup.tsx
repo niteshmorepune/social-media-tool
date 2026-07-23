@@ -379,6 +379,31 @@ function TikTokMockup(props: Props) {
   )
 }
 
+function YouTubeMockup(props: Props) {
+  const displayTitle = truncate(props.title ?? null, 100)
+  const displayDescription = truncate(props.caption, 150)
+
+  return (
+    <div className="max-w-sm mx-auto">
+      <div className="rounded-xl overflow-hidden bg-black">
+        <MockupMedia {...extractMediaProps(props)} />
+      </div>
+      <div className="flex items-start gap-2.5 pt-3">
+        <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center shrink-0 text-white font-bold text-sm">
+          {props.clientName.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">{displayTitle || 'Untitled video'}</p>
+          <p className="text-xs text-gray-500 mt-1">{props.clientName}</p>
+          <p className="text-xs text-gray-500">1.2K views · 3 days ago</p>
+        </div>
+        <svg className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
+      </div>
+      {displayDescription && <p className="text-xs text-gray-500 mt-2 px-0.5 leading-relaxed">{displayDescription}</p>}
+    </div>
+  )
+}
+
 function GoogleBusinessMockup(props: Props) {
   const displayText = truncate(props.caption, 200)
 
@@ -521,6 +546,7 @@ export default function PlatformMockup(props: Props) {
     case 'Twitter':         return <TwitterMockup        {...props} />
     case 'TikTok':          return <TikTokMockup         {...props} />
     case 'Google Business': return <GoogleBusinessMockup {...props} />
+    case 'YouTube':         return <YouTubeMockup        {...props} />
     default:                return <DefaultMockup        {...props} />
   }
 }
