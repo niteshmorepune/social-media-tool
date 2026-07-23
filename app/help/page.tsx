@@ -73,7 +73,7 @@ export default function HelpPage() {
             <div className="space-y-3">
               <div>
                 <p className="font-medium text-gray-800 mb-1">Caption character counter</p>
-                <p className="text-gray-600">The Caption field shows a live character counter in the top-right corner — e.g. <em>312 / 2,200</em>. The counter turns amber when you pass 80% of the platform limit and red with a ⚠ warning when you exceed it. Platform limits: Instagram &amp; TikTok 2,200 · LinkedIn 3,000 · Facebook 63,206 · Twitter 280 · Google Business 1,500.</p>
+                <p className="text-gray-600">The Caption field shows a live character counter in the top-right corner — e.g. <em>312 / 2,200</em>. The counter turns amber when you pass 80% of the platform limit and red with a ⚠ warning when you exceed it. Platform limits: Instagram &amp; TikTok 2,200 · LinkedIn 3,000 · Facebook 63,206 · Twitter 280 · Google Business 1,500 · YouTube 5,000 (video description).</p>
               </div>
               <div>
                 <p className="font-medium text-gray-800 mb-1">Regenerate with Direction</p>
@@ -117,6 +117,7 @@ export default function HelpPage() {
               <ContentTypeRow label="Landing Page" desc="Conversion-focused page copy under the Website platform — see the dedicated section below. No media is generated for this type." />
             </div>
             <Note text='Image and Carousel posts now also generate accessibility/SEO Alt Text alongside the image prompt — shown as an "Alt Text" field in the View → drawer, and used as the real alt attribute on the image itself. No extra step needed, it comes with the normal generation.' />
+            <Note text='YouTube only offers the Video content type (its native format) and generates an extra "Title" field — the SEO-critical video title, shown above the description in the View → drawer. The Caption field doubles as the video description for this platform.' />
           </div>
 
           <div className="border-t border-gray-100 pt-4">
@@ -278,6 +279,7 @@ export default function HelpPage() {
               <ContentTypeRow label="Twitter / X" desc="Tweet layout with verified badge, tweet text, rounded media frame, timestamp and view count, and icon action row." />
               <ContentTypeRow label="TikTok" desc="Full-bleed dark frame with gradient overlay, right-side action buttons (heart, comment, share, music), and caption overlay at the bottom." />
               <ContentTypeRow label="Google Business" desc="Google Business Profile layout with the Google G logo, post text, media, and the Call to Action rendered as a real button." />
+              <ContentTypeRow label="YouTube" desc="Video card layout with 16:9 thumbnail, channel avatar, a bold two-line video title, and a views/date placeholder row — description shown below the card." />
             </div>
             <p className="text-gray-600 mt-3">Caption and hashtags appear inside the mockup. Supporting fields such as Hook, Script, and On-screen Text are shown below the mockup for reference.</p>
           </div>

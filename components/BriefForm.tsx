@@ -172,13 +172,14 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
         <p className="text-sm text-gray-500 mb-4">Select platform and content type combinations, then set how many posts per month for each.</p>
 
         <div className="space-y-4">
-          {PLATFORMS.map(({ value, label, supportsVideo, supportsCarousel, adOnly, websiteOnly }) => (
+          {PLATFORMS.map(({ value, label, supportsVideo, supportsCarousel, adOnly, websiteOnly, videoOnly }) => (
             <div key={value}>
               <p className="text-sm font-medium text-gray-700 mb-2">{label}</p>
               <div className="flex gap-2">
                 {(websiteOnly ? (['BLOG_POST', 'LANDING_PAGE'] as const) : adOnly ? (['AD_COPY'] as const) : (['IMAGE', 'VIDEO', 'CAROUSEL'] as const)).map(type => {
                   if (type === 'VIDEO' && !supportsVideo) return null
                   if (type === 'CAROUSEL' && !supportsCarousel) return null
+                  if (type === 'IMAGE' && videoOnly) return null
                   const selected = isSelected(value, type)
                   return (
                     <button

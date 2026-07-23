@@ -25,6 +25,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   Twitter:           'bg-slate-100 text-slate-700 border-slate-200',
   TikTok:            'bg-purple-100 text-purple-700 border-purple-200',
   'Google Business': 'bg-green-100 text-green-700 border-green-200',
+  YouTube:           'bg-red-100 text-red-700 border-red-200',
 }
 
 const EVENT_COLORS: Record<string, string> = {
