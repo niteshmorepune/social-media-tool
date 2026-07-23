@@ -49,6 +49,7 @@ model User {
   briefs        Brief[]        @relation("BriefCreatedBy")
   revisions     Revision[]
   notifications Notification[]
+  aiUsageLogs   AIUsageLog[]
 
   @@index([email])
   @@index([clientId])
@@ -77,10 +78,31 @@ model Client {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  users  User[]  @relation("ClientUsers")
-  briefs Brief[]
+  users       User[]       @relation("ClientUsers")
+  briefs      Brief[]
+  aiUsageLogs AIUsageLog[]
 
   @@index([name])
+}
+
+// AI usage/cost tracking — one row per Claude API call, folded into the NEDS
+// CRM's AI Usage Report (GET /api/ai/usage, X-Service-Key) alongside Drishti's
+// own AIUsageLog. Same shape as Drishti's model (userId/clientId/toolId/
+// tokens/costUsd) for consistency across the two sibling apps' estimates.
+model AIUsageLog {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientId     String?
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  toolId       String
+  inputTokens  Int
+  outputTokens Int
+  costUsd      Float
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([clientId])
 }
 
 model Brief {

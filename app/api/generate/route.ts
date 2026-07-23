@@ -14,6 +14,7 @@ import { validateMetaAdCopy, validateGoogleAdCopy } from '@/lib/ad-copy-policy'
 import { buildBrandVoiceSection } from '@/lib/brand-voice'
 import { blogPostTool, BLOG_SYSTEM_PROMPT, buildBlogUserPrompt } from '@/lib/blog-content'
 import { landingPageTool, LANDING_PAGE_SYSTEM_PROMPT, buildLandingPageUserPrompt } from '@/lib/landing-page-content'
+import { logAiUsage } from '@/lib/ai-usage'
 
 // ── Claude tool schemas ───────────────────────────────────────────────────────
 
@@ -152,6 +153,7 @@ export async function POST(req: Request) {
       tool_choice: { type: 'any' },
       messages:    [{ role: 'user', content: userPrompt }],
     })
+    await logAiUsage({ userId: session.user.id, clientId: client.id, toolId: 'AD_COPY', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens })
 
     const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === toolName)
     if (!toolUse || toolUse.type !== 'tool_use') {
@@ -212,6 +214,7 @@ export async function POST(req: Request) {
       tool_choice: { type: 'any' },
       messages:    [{ role: 'user', content: userPrompt }],
     })
+    await logAiUsage({ userId: session.user.id, clientId: client.id, toolId: 'BLOG_POST', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens })
 
     const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_blog_post')
     if (!toolUse || toolUse.type !== 'tool_use') {
@@ -256,6 +259,7 @@ export async function POST(req: Request) {
       tool_choice: { type: 'any' },
       messages:    [{ role: 'user', content: userPrompt }],
     })
+    await logAiUsage({ userId: session.user.id, clientId: client.id, toolId: 'LANDING_PAGE', inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens })
 
     const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_landing_page')
     if (!toolUse || toolUse.type !== 'tool_use') {
@@ -331,6 +335,7 @@ For image/video prompts, write rich, detailed descriptions suitable for AI gener
     tool_choice:  { type: 'any' },
     messages:     [{ role: 'user', content: userPrompt }]
   })
+  await logAiUsage({ userId: session.user.id, clientId: client.id, toolId: contentType, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens })
 
   const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === toolName)
   if (!toolUse || toolUse.type !== 'tool_use') {
