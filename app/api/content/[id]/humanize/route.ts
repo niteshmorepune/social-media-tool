@@ -29,7 +29,10 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
 
   let result
   try {
-    result = await runHumanizeAndCheck(content.body, content.briefPlatform.targetKeyword)
+    // Prefer this post's own snapshot (per-post keyword, set at generation
+    // time) over the parent brief platform's legacy single keyword, which
+    // may have changed or applied to a different post index since.
+    result = await runHumanizeAndCheck(content.body, content.targetKeyword ?? content.briefPlatform.targetKeyword)
   } catch (err) {
     console.error('Humanize & Check error:', err)
     return NextResponse.json({ error: 'Humanize & Check failed — try again' }, { status: 500 })

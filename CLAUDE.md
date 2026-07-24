@@ -90,6 +90,14 @@ YouTube is the only platform whose `videoTools()` schema (in both `app/api/gener
 
 Same pre-existing caveat as every other video platform: RunwayML generates a **silent 10-second clip regardless of platform or the AI-recommended duration** (`VIDEO_DURATIONS.YouTube` offers up to "12 minutes" as a script-length guide only) — adding YouTube doesn't fix or worsen this, the generated video is a creative-brief/thumbnail output, not a finished long-form upload, same as it already is for TikTok/Reels.
 
+### Per-Post Target Keywords (Blog Post / Landing Page)
+
+`BriefPlatform.targetKeywords` (`Json?`, a string array index-aligned with generation order — `[0]` is post 1's keyword, `[1]` is post 2's, etc.) lets each planned blog post/landing page in a brief target its own SEO keyword, instead of every post in a multi-post row sharing one `targetKeyword`. The old scalar `targetKeyword` field is kept as a legacy fallback (used when `targetKeywords` is absent/empty — briefs created before this shipped) and is also kept in sync with `targetKeywords[0]` on create, in case any other code still reads it directly.
+
+- `pickTargetKeyword(targetKeywords, postNumber, legacyTargetKeyword)` in `lib/utils.ts` is the single resolution point: 1-indexed `postNumber` looks up `targetKeywords[postNumber - 1]`, falls back to the legacy scalar, then to `null` ("let AI choose" — see `buildBlogUserPrompt`/`buildLandingPageUserPrompt`). Both `app/api/generate/route.ts` (the per-post "Fill"/"Regenerate All" loop `BriefGenerateButton` drives) and `app/api/generate/bulk/route.ts` (always resolves index 0 — "Generate All" only ever produces post 1 of 1 per platform row) call this.
+- Each generated `Content` row snapshots the keyword it was actually generated with onto its own `targetKeyword String?` column — so `humanize`'s originality check (`app/api/content/[id]/humanize/route.ts`) and any later regeneration of THAT specific post always use the keyword it was built for, even if the brief's keyword list has since changed. "Regenerate with Direction" (`ContentViewDrawer`, passes `contentIdToReplace`) explicitly reuses the replaced post's own stored `targetKeyword` rather than re-deriving one from `postNumber` — the safer choice, since a brief's `targetKeywords` array isn't guaranteed to still line up the same way weeks later.
+- `BriefForm.tsx`: when `postsCount === 1`, a single keyword input renders (unchanged from before). When `postsCount > 1`, it renders one numbered input per planned post plus a "paste one keyword per line, then Fill in" textarea+button (`pasteTargetKeywords()`) — typing 30 individual fields for a 30-post brief would otherwise be painful. `updatePostsCount()` resizes the `targetKeywords` array to match, preserving already-typed values by index when the count changes.
+
 ### Content Generation — `POST /api/generate`
 
 Accepts optional params beyond `briefPlatformId`:

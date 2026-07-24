@@ -59,6 +59,25 @@ export function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(' ')
 }
 
+/**
+ * Resolves which target keyword a specific BLOG_POST/LANDING_PAGE post
+ * (1-indexed postNumber) should use: its own entry in the per-post
+ * targetKeywords array, falling back to the legacy single targetKeyword
+ * field (briefs created before per-post keywords shipped), then null
+ * ("let AI choose" — see buildBlogUserPrompt/buildLandingPageUserPrompt).
+ */
+export function pickTargetKeyword(
+  targetKeywords: unknown,
+  postNumber: number,
+  legacyTargetKeyword: string | null
+): string | null {
+  const list = Array.isArray(targetKeywords) ? (targetKeywords as unknown[]) : []
+  const entry = list[postNumber - 1]
+  const trimmed = typeof entry === 'string' ? entry.trim() : ''
+  if (trimmed) return trimmed
+  return legacyTargetKeyword?.trim() || null
+}
+
 export function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric'

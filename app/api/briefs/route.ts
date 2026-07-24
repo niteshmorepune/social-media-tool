@@ -60,12 +60,15 @@ export async function POST(req: Request) {
       scheduledMonth: new Date(scheduledMonth),
       createdById,
       platforms: {
-        create: platforms.map((p: { platform: string; contentType: string; postsCount?: number; finalUrl?: string; targetKeyword?: string }) => ({
-          platform:      p.platform,
-          contentType:   p.contentType,
-          postsCount:    p.postsCount ?? 1,
-          finalUrl:      p.finalUrl || null,
-          targetKeyword: p.targetKeyword || null
+        create: platforms.map((p: { platform: string; contentType: string; postsCount?: number; finalUrl?: string; targetKeyword?: string; targetKeywords?: string[] }) => ({
+          platform:       p.platform,
+          contentType:    p.contentType,
+          postsCount:     p.postsCount ?? 1,
+          finalUrl:       p.finalUrl || null,
+          // Legacy scalar kept in sync with the first per-post keyword, so
+          // any older code path still reading it sees a sensible value.
+          targetKeyword:  p.targetKeywords?.[0]?.trim() || p.targetKeyword || null,
+          targetKeywords: p.targetKeywords?.some(k => k?.trim()) ? p.targetKeywords : undefined,
         }))
       }
     },
