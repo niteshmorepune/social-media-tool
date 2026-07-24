@@ -2,7 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import claude from '@/lib/claude'
 import { NextResponse } from 'next/server'
-import { CAPTION_LIMITS, VIDEO_DURATIONS } from '@/lib/utils'
+import { CAPTION_LIMITS, VIDEO_DURATIONS, pickTargetKeyword } from '@/lib/utils'
 import {
   generateImage,
   generateCarouselImages,
@@ -122,6 +122,19 @@ export async function POST(req: Request) {
   const { platform, contentType, brief } = briefPlatform
   const { client } = brief
 
+  // When regenerating a specific existing post (e.g. "Regenerate with
+  // Direction"), keep using THAT post's own target keyword rather than
+  // re-deriving one from postNumber — the brief's keyword list may have
+  // changed since this post was first generated.
+  let replacedTargetKeyword: string | null = null
+  if (contentIdToReplace && (contentType === 'BLOG_POST' || contentType === 'LANDING_PAGE')) {
+    const existing = await prisma.content.findUnique({
+      where: { id: contentIdToReplace },
+      select: { targetKeyword: true },
+    })
+    replacedTargetKeyword = existing?.targetKeyword ?? null
+  }
+
   // Delete logic: replace a specific item, clear all, or leave existing (addPost)
   if (contentIdToReplace) {
     await prisma.content.delete({ where: { id: contentIdToReplace } })
@@ -199,8 +212,10 @@ export async function POST(req: Request) {
   }
 
   if (contentType === 'BLOG_POST') {
+    const targetKeyword = replacedTargetKeyword
+      ?? pickTargetKeyword(briefPlatform.targetKeywords, postNumber, briefPlatform.targetKeyword)
     const userPrompt = buildBlogUserPrompt({
-      targetKeyword: briefPlatform.targetKeyword,
+      targetKeyword,
       brief,
       client,
       direction,
@@ -237,6 +252,7 @@ export async function POST(req: Request) {
         slug:            (generated.slug as string)            ?? null,
         excerpt:         stripCite(generated.excerpt)          as string ?? null,
         body:            stripCite(generated.body)             as string ?? null,
+        targetKeyword,
       },
     })
 
@@ -244,8 +260,10 @@ export async function POST(req: Request) {
   }
 
   if (contentType === 'LANDING_PAGE') {
+    const targetKeyword = replacedTargetKeyword
+      ?? pickTargetKeyword(briefPlatform.targetKeywords, postNumber, briefPlatform.targetKeyword)
     const userPrompt = buildLandingPageUserPrompt({
-      targetKeyword: briefPlatform.targetKeyword,
+      targetKeyword,
       brief,
       client,
       direction,
@@ -282,6 +300,7 @@ export async function POST(req: Request) {
         slug:            (generated.slug as string)            ?? null,
         excerpt:         stripCite(generated.excerpt)          as string ?? null,
         body:            stripCite(generated.body)             as string ?? null,
+        targetKeyword,
       },
     })
 

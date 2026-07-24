@@ -32,11 +32,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       createdById:        session.user.id,
       platforms: {
         create: original.platforms.map(p => ({
-          platform:      p.platform,
-          contentType:   p.contentType,
-          postsCount:    p.postsCount,
-          finalUrl:      p.finalUrl,
-          targetKeyword: p.targetKeyword,
+          platform:       p.platform,
+          contentType:    p.contentType,
+          postsCount:     p.postsCount,
+          finalUrl:       p.finalUrl,
+          targetKeyword:  p.targetKeyword,
+          targetKeywords: p.targetKeywords ?? undefined,
         })),
       },
     },

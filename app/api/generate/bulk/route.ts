@@ -2,7 +2,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import claude from '@/lib/claude'
 import { NextResponse } from 'next/server'
-import { CAPTION_LIMITS, VIDEO_DURATIONS } from '@/lib/utils'
+import { CAPTION_LIMITS, VIDEO_DURATIONS, pickTargetKeyword } from '@/lib/utils'
 import {
   generateImage,
   generateCarouselImages,
@@ -219,7 +219,7 @@ async function generateAdCopyContent(
 // ── Blog post generation ───────────────────────────────────────────────────────
 
 async function generateBlogContent(
-  bp: { targetKeyword: string | null },
+  bp: { targetKeyword: string | null; targetKeywords?: unknown },
   brief: {
     contentGoal:          string
     campaignDescription:  string
@@ -232,9 +232,12 @@ async function generateBlogContent(
     }
   },
   userId: string
-): Promise<Record<string, unknown>> {
+): Promise<{ generated: Record<string, unknown>; targetKeyword: string | null }> {
+  // Bulk "Generate All" only ever produces post 1 of 1 per platform row (see
+  // the single-iteration loop below) — always resolves the first keyword.
+  const targetKeyword = pickTargetKeyword(bp.targetKeywords, 1, bp.targetKeyword)
   const userPrompt = buildBlogUserPrompt({
-    targetKeyword: bp.targetKeyword,
+    targetKeyword,
     brief,
     client: brief.client,
   })
@@ -251,13 +254,13 @@ async function generateBlogContent(
 
   const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_blog_post')
   if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No structured blog post returned')
-  return toolUse.input as Record<string, unknown>
+  return { generated: toolUse.input as Record<string, unknown>, targetKeyword }
 }
 
 // ── Landing page generation ────────────────────────────────────────────────────
 
 async function generateLandingPageContent(
-  bp: { targetKeyword: string | null },
+  bp: { targetKeyword: string | null; targetKeywords?: unknown },
   brief: {
     contentGoal:          string
     campaignDescription:  string
@@ -270,9 +273,11 @@ async function generateLandingPageContent(
     }
   },
   userId: string
-): Promise<Record<string, unknown>> {
+): Promise<{ generated: Record<string, unknown>; targetKeyword: string | null }> {
+  // Bulk "Generate All" only ever produces post 1 of 1 per platform row.
+  const targetKeyword = pickTargetKeyword(bp.targetKeywords, 1, bp.targetKeyword)
   const userPrompt = buildLandingPageUserPrompt({
-    targetKeyword: bp.targetKeyword,
+    targetKeyword,
     brief,
     client: brief.client,
   })
@@ -289,7 +294,7 @@ async function generateLandingPageContent(
 
   const toolUse = response.content.find(b => b.type === 'tool_use' && b.name === 'generate_landing_page')
   if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No structured landing page returned')
-  return toolUse.input as Record<string, unknown>
+  return { generated: toolUse.input as Record<string, unknown>, targetKeyword }
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -349,7 +354,7 @@ export async function POST(req: Request) {
       }
 
       if (bp.contentType === 'BLOG_POST') {
-        const generated = await generateBlogContent(bp, brief, session.user.id)
+        const { generated, targetKeyword } = await generateBlogContent(bp, brief, session.user.id)
         const stripCite = (s: unknown) => typeof s === 'string' ? s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '') : s
         const content = await prisma.content.create({
           data: {
@@ -365,6 +370,7 @@ export async function POST(req: Request) {
             slug:            (generated.slug as string)            ?? null,
             excerpt:         stripCite(generated.excerpt)          as string ?? null,
             body:            stripCite(generated.body)             as string ?? null,
+            targetKeyword,
           },
         })
         results.push(content)
@@ -372,7 +378,7 @@ export async function POST(req: Request) {
       }
 
       if (bp.contentType === 'LANDING_PAGE') {
-        const generated = await generateLandingPageContent(bp, brief, session.user.id)
+        const { generated, targetKeyword } = await generateLandingPageContent(bp, brief, session.user.id)
         const stripCite = (s: unknown) => typeof s === 'string' ? s.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '') : s
         const content = await prisma.content.create({
           data: {
@@ -388,6 +394,7 @@ export async function POST(req: Request) {
             slug:            (generated.slug as string)            ?? null,
             excerpt:         stripCite(generated.excerpt)          as string ?? null,
             body:            stripCite(generated.body)             as string ?? null,
+            targetKeyword,
           },
         })
         results.push(content)

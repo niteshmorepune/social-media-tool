@@ -138,8 +138,17 @@ model BriefPlatform {
   // meaningful when contentType is AD_COPY. Not related to the
   // LANDING_PAGE content type below, which generates NEW landing page copy.
   finalUrl    String?     @db.Text
-  // SEO target keyword — meaningful for BLOG_POST and LANDING_PAGE
-  targetKeyword String?   @db.Text
+  // SEO target keyword — meaningful for BLOG_POST and LANDING_PAGE.
+  // Legacy single-keyword field, applied to every post when targetKeywords
+  // below is absent/empty (briefs created before per-post keywords shipped).
+  targetKeyword  String?  @db.Text
+  // Per-post target keywords for BLOG_POST/LANDING_PAGE, index-aligned with
+  // generation order (targetKeywords[0] = post 1, [1] = post 2, ...) — lets
+  // e.g. 30 planned blog posts each target a different keyword instead of
+  // all 30 sharing targetKeyword above. Stored as a JSON string array;
+  // a blank/missing entry at an index falls back to targetKeyword, then to
+  // "let AI choose" (see pickTargetKeyword() in lib/utils.ts).
+  targetKeywords Json?
 
   brief   Brief     @relation(fields: [briefId], references: [id], onDelete: Cascade)
   content Content[]
@@ -209,6 +218,13 @@ model Content {
   slug             String?
   excerpt          String?   @db.Text // blog: listing summary. Landing page: hero subheadline.
   body             String?   @db.Text // full article or page copy, Markdown
+  // Snapshot of the specific keyword this post was generated with (resolved
+  // via pickTargetKeyword() from the parent BriefPlatform's targetKeywords[i]
+  // at generation time) — kept on the post itself so humanize/regenerate and
+  // any later display always reflect what THIS post actually targeted, not
+  // whatever the brief's keyword list looks like now. Null for posts
+  // generated before per-post keywords shipped.
+  targetKeyword    String?   @db.Text
   // Set by the "Humanize & Check Originality" action — advisory, not a guarantee
   originalityScore Int?               // 0–100, higher = more original/human
   originalityNotes String?   @db.Text

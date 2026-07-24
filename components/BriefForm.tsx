@@ -6,7 +6,10 @@ import { PLATFORMS, CONTENT_GOALS } from '@/lib/utils'
 
 interface Client { id: string; name: string; primaryColor: string | null }
 type ContentTypeChoice = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | 'AD_COPY' | 'BLOG_POST' | 'LANDING_PAGE'
-interface PlatformEntry { platform: string; contentType: ContentTypeChoice; postsCount: number; finalUrl?: string; targetKeyword?: string }
+// targetKeywords is index-aligned with postsCount: targetKeywords[0] is post
+// 1's keyword, [1] is post 2's, etc. — kept in sync with postsCount so every
+// planned post has its own (possibly blank, meaning "let AI choose") slot.
+interface PlatformEntry { platform: string; contentType: ContentTypeChoice; postsCount: number; finalUrl?: string; targetKeywords?: string[] }
 
 export default function BriefForm({ clients }: { clients: Client[] }) {
   const router = useRouter()
@@ -22,6 +25,10 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
   const [platforms, setPlatforms] = useState<PlatformEntry[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // Scratch space for the "paste one keyword per line" box, keyed by
+  // platform+contentType — separate from the committed targetKeywords array
+  // so typing/pasting doesn't fill fields until "Fill in" is clicked.
+  const [keywordPasteDrafts, setKeywordPasteDrafts] = useState<Record<string, string>>({})
 
   function set(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -34,7 +41,7 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
       const defaults = contentType === 'AD_COPY'
         ? { postsCount: 2, finalUrl: '' }
         : contentType === 'BLOG_POST' || contentType === 'LANDING_PAGE'
-        ? { postsCount: 1, targetKeyword: '' }
+        ? { postsCount: 1, targetKeywords: [''] }
         : { postsCount: 4 }
       return [...prev, { platform, contentType, ...defaults }]
     })
@@ -45,11 +52,14 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
   }
 
   function updatePostsCount(platform: string, contentType: string, value: number) {
-    setPlatforms(prev => prev.map(p =>
-      p.platform === platform && p.contentType === contentType
-        ? { ...p, postsCount: Math.max(1, Math.min(30, value)) }
-        : p
-    ))
+    setPlatforms(prev => prev.map(p => {
+      if (p.platform !== platform || p.contentType !== contentType) return p
+      const postsCount = Math.max(1, Math.min(30, value))
+      if (!p.targetKeywords) return { ...p, postsCount }
+      // Resize the keyword list to match, preserving existing entries by index.
+      const targetKeywords = Array.from({ length: postsCount }, (_, i) => p.targetKeywords?.[i] ?? '')
+      return { ...p, postsCount, targetKeywords }
+    }))
   }
 
   function updateFinalUrl(platform: string, contentType: string, value: string) {
@@ -60,12 +70,25 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
     ))
   }
 
-  function updateTargetKeyword(platform: string, contentType: string, value: string) {
-    setPlatforms(prev => prev.map(p =>
-      p.platform === platform && p.contentType === contentType
-        ? { ...p, targetKeyword: value }
-        : p
-    ))
+  function updateTargetKeywordAt(platform: string, contentType: string, index: number, value: string) {
+    setPlatforms(prev => prev.map(p => {
+      if (p.platform !== platform || p.contentType !== contentType) return p
+      const targetKeywords = [...(p.targetKeywords ?? [])]
+      targetKeywords[index] = value
+      return { ...p, targetKeywords }
+    }))
+  }
+
+  // Splits a pasted block of text (one keyword per line) across the post's
+  // keyword slots in order — lets someone fill 30 keywords in one paste
+  // instead of clicking into 30 separate fields.
+  function pasteTargetKeywords(platform: string, contentType: string, text: string) {
+    const lines = text.split('\n').map(l => l.trim())
+    setPlatforms(prev => prev.map(p => {
+      if (p.platform !== platform || p.contentType !== contentType) return p
+      const targetKeywords = Array.from({ length: p.postsCount }, (_, i) => lines[i] ?? p.targetKeywords?.[i] ?? '')
+      return { ...p, targetKeywords }
+    }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -252,15 +275,55 @@ export default function BriefForm({ clients }: { clients: Client[] }) {
                         className="w-full px-2.5 py-1.5 text-xs border border-blue-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-blue-300"
                       />
                     )}
-                    {needsTargetKeyword && (
+                    {needsTargetKeyword && p.postsCount === 1 && (
                       <input
                         type="text"
-                        value={p.targetKeyword ?? ''}
-                        onChange={e => updateTargetKeyword(p.platform, p.contentType, e.target.value)}
+                        value={p.targetKeywords?.[0] ?? ''}
+                        onChange={e => updateTargetKeywordAt(p.platform, p.contentType, 0, e.target.value)}
                         placeholder="Target keyword — e.g. affordable website design in Pune"
                         className="w-full px-2.5 py-1.5 text-xs border border-blue-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-blue-300"
                       />
                     )}
+                    {needsTargetKeyword && p.postsCount > 1 && (() => {
+                      const draftKey = `${p.platform}::${p.contentType}`
+                      return (
+                        <div className="space-y-2">
+                          <p className="text-xs text-blue-600">
+                            Each of the {p.postsCount} {isBlogPost ? 'blog posts' : 'landing pages'} can target its own keyword — leave any blank to let AI choose one.
+                          </p>
+                          <div className="flex gap-1.5">
+                            <textarea
+                              rows={2}
+                              value={keywordPasteDrafts[draftKey] ?? ''}
+                              onChange={e => setKeywordPasteDrafts(d => ({ ...d, [draftKey]: e.target.value }))}
+                              placeholder={`Paste up to ${p.postsCount} keywords here, one per line, then click "Fill in"`}
+                              className="flex-1 px-2.5 py-1.5 text-xs border border-blue-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-blue-300 resize-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => pasteTargetKeywords(p.platform, p.contentType, keywordPasteDrafts[draftKey] ?? '')}
+                              className="px-2.5 py-1 text-xs font-medium text-blue-700 border border-blue-200 rounded bg-white hover:bg-blue-50 self-start"
+                            >
+                              Fill in
+                            </button>
+                          </div>
+                          <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                            {Array.from({ length: p.postsCount }, (_, idx) => (
+                              <div key={idx} className="flex items-center gap-1.5">
+                                <span className="w-5 shrink-0 text-right text-xs text-blue-400">{idx + 1}.</span>
+                                <input
+                                  type="text"
+                                  value={p.targetKeywords?.[idx] ?? ''}
+                                  onChange={e => updateTargetKeywordAt(p.platform, p.contentType, idx, e.target.value)}
+                                  placeholder={`Keyword for post ${idx + 1} — or leave blank`}
+                                  className="flex-1 px-2.5 py-1.5 text-xs border border-blue-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder-blue-300"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 )
               })}
