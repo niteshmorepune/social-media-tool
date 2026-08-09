@@ -1,4 +1,4 @@
-import { auth } from '@/auth'
+﻿import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
@@ -19,9 +19,18 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await auth()
-  if (!session || session.user.role === 'CLIENT') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Allow server-to-server calls from the NEDS CRM (deal won → provision a
+  // CLIENT portal login for the client's primary contact, mirroring how the
+  // CRM already provisions a Drishti CLIENT user). Same shared-secret pattern
+  // as POST /api/clients.
+  const serviceKey = req.headers.get('x-service-key')
+  const isServiceCall = serviceKey && serviceKey === process.env.SMDOST_SERVICE_KEY
+
+  if (!isServiceCall) {
+    const session = await auth()
+    if (!session || session.user.role === 'CLIENT') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
   }
 
   const { name, email, password, role, clientId } = await req.json()
