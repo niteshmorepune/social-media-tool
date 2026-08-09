@@ -1,5 +1,6 @@
 import ClientForm from '@/components/ClientForm'
 import ClientPortalLoginForm from '@/components/ClientPortalLoginForm'
+import ClientPortalLoginsList from '@/components/ClientPortalLoginsList'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -37,23 +38,7 @@ export default async function EditClientPage({ params }: { params: Promise<{ id:
       {/* Client portal logins */}
       <div className="mt-8 bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="font-semibold text-gray-900 mb-4">Client Portal Access</h2>
-        {client.users.length === 0 ? (
-          <p className="text-sm text-gray-500 mb-4">No portal logins yet.</p>
-        ) : (
-          <ul className="space-y-2 mb-4">
-            {client.users.map(u => (
-              <li key={u.id} className="flex items-center gap-3 text-sm py-2 border-b border-gray-100 last:border-0">
-                <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-semibold text-blue-700 shrink-0">
-                  {u.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{u.name}</p>
-                  <p className="text-gray-500">{u.email}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ClientPortalLoginsList users={client.users} />
         <ClientPortalLoginForm clientId={id} />
       </div>
     </div>
