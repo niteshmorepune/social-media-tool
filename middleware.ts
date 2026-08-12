@@ -18,6 +18,13 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
+  // Privacy Policy / Terms of Service — must be reachable without a session,
+  // since Meta (and anyone else) needs to view these while logged out. No
+  // redirect-away-if-authenticated behavior needed, unlike /login.
+  if (pathname === '/privacy-policy' || pathname === '/terms-of-service') {
+    return NextResponse.next()
+  }
+
   // All other routes require authentication
   if (!session) {
     return NextResponse.redirect(new URL('/login', req.url))
