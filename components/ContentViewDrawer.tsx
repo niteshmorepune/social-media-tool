@@ -59,6 +59,9 @@ interface FullContent {
   adPaths: string[] | null
   businessName: string | null
   policyFlags: PolicyFlag[] | null
+  metaCreativeId: string | null
+  metaPushedAt: string | null
+  metaPushError: string | null
   title: string | null
   metaTitle: string | null
   metaDescription: string | null
@@ -101,6 +104,8 @@ export default function ContentViewDrawer({
   const [regenError, setRegenError] = useState('')
   const [humanizing, setHumanizing] = useState(false)
   const [humanizeError, setHumanizeError] = useState('')
+  const [pushingToMeta, setPushingToMeta] = useState(false)
+  const [pushToMetaError, setPushToMetaError] = useState('')
   const [schemaCopied, setSchemaCopied] = useState(false)
   const [noteText, setNoteText]   = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
@@ -231,6 +236,24 @@ export default function ContentViewDrawer({
       setHumanizeError('Request failed.')
     } finally {
       setHumanizing(false)
+    }
+  }
+
+  async function handlePushToMeta() {
+    setPushToMetaError('')
+    setPushingToMeta(true)
+    try {
+      const res = await fetch(`/api/content/${contentId}/push-to-meta`, { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        setPushToMetaError(body?.error ?? 'Push to Meta Ads Manager failed. Please try again.')
+        return
+      }
+      await fetchData()
+    } catch {
+      setPushToMetaError('Request failed.')
+    } finally {
+      setPushingToMeta(false)
     }
   }
 
@@ -548,6 +571,29 @@ export default function ContentViewDrawer({
                     </button>
                     <p className="text-xs text-gray-400">Rewrites the body to read more naturally and spot-checks it against a live web search. Overwrites the body below — review before approving.</p>
                     {humanizeError && <p className="text-xs text-red-500">{humanizeError}</p>}
+                  </div>
+                )}
+                {data.contentType === 'AD_COPY' && data.platform === 'Meta Ads' && data.status === 'APPROVED' && (
+                  <div className="pt-1 border-t border-gray-200 space-y-2">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Meta Ads Manager</p>
+                    <button
+                      onClick={handlePushToMeta}
+                      disabled={pushingToMeta}
+                      className="w-full px-4 py-2 text-sm bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white rounded-lg transition-colors"
+                    >
+                      {pushingToMeta ? 'Pushing...' : data.metaCreativeId ? '↺ Push Again' : '→ Push to Meta Ads Manager'}
+                    </button>
+                    <p className="text-xs text-gray-400">
+                      Creates a Creative asset (text only) in the NEDS ad account&apos;s library — no campaign, budget, or targeting is created or changed. Build and launch the actual campaign yourself in Ads Manager, picking this creative instead of retyping the copy.
+                    </p>
+                    {data.metaCreativeId && (
+                      <p className="text-xs text-green-600">
+                        ✓ Pushed{data.metaPushedAt ? ` ${new Date(data.metaPushedAt).toLocaleString()}` : ''} — Creative ID: {data.metaCreativeId}
+                      </p>
+                    )}
+                    {(pushToMetaError || data.metaPushError) && (
+                      <p className="text-xs text-red-500">{pushToMetaError || data.metaPushError}</p>
+                    )}
                   </div>
                 )}
               </div>
