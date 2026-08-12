@@ -206,6 +206,15 @@ model Content {
   // multi-variant AD_COPY generation produces a real, labeled A/B test set
   // instead of just "different" copy. Null for single-variant briefs.
   adAngle        String?
+  // Meta Ads only: once pushed via "Push to Meta Ads Manager", the returned
+  // Ad Creative ID (an asset in the ad account's creative library — no
+  // Campaign/AdSet/Ad is created, so this never touches budget/targeting/
+  // schedule). Null until pushed. metaPushError holds the last failure
+  // message so a retry doesn't need to repeat the whole request cycle to
+  // find out what went wrong.
+  metaCreativeId String?
+  metaPushedAt   DateTime?
+  metaPushError  String?   @db.Text
 
   // ── Blog / SEO long-form (Blog Post, Landing Page) ──
   // Shared by both content types — Landing Page just uses different
