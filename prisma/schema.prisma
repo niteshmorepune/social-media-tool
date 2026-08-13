@@ -215,6 +215,23 @@ model Content {
   metaCreativeId String?
   metaPushedAt   DateTime?
   metaPushError  String?   @db.Text
+  // Google Ads only: once pushed via "Push to Google Ads", the created
+  // AdGroupAd's resource name (e.g. "customers/123/adGroupAds/456~789").
+  // Every push creates its OWN paused Campaign+Budget+AdGroup+Ad (Google's
+  // API has no standalone-creative object like Meta's) — see lib/google-ads.ts
+  // for the full guardrail list. googlePushError mirrors metaPushError.
+  googleAdGroupAdResourceName String?
+  googlePushedAt              DateTime?
+  googlePushError             String?    @db.Text
+
+  // AI Ad Review (Meta + Google Ads, on-demand critique of the copy already
+  // in the fields above — never auto-edits, see lib/ad-review.ts). Cached on
+  // the row rather than recomputed per view, same "compute once, cache the
+  // result" discipline as this app's other AI passes (humanize, etc.) —
+  // invalidated (columns cleared) whenever the copy is regenerated.
+  adReviewScore    Int?      // 0-100
+  adReviewFeedback Json?     // [{severity:'strength'|'suggestion', field, message}]
+  adReviewedAt     DateTime?
 
   // ── Blog / SEO long-form (Blog Post, Landing Page) ──
   // Shared by both content types — Landing Page just uses different

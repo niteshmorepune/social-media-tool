@@ -8,6 +8,7 @@ import RegenerateMediaButton from './RegenerateMediaButton'
 import ScheduleDatePicker from './ScheduleDatePicker'
 import { getStatusColor, getStatusLabel, contentTypeLabel, CAPTION_LIMITS } from '@/lib/utils'
 import { META_SOFT_LIMITS, GOOGLE_HARD_LIMITS, PolicyFlag } from '@/lib/ad-copy-policy'
+import { AdReviewFlag } from '@/lib/ad-review'
 import { buildArticleSchema, buildServiceSchema } from '@/lib/seo-schema'
 
 interface Revision {
@@ -62,6 +63,12 @@ interface FullContent {
   metaCreativeId: string | null
   metaPushedAt: string | null
   metaPushError: string | null
+  googleAdGroupAdResourceName: string | null
+  googlePushedAt: string | null
+  googlePushError: string | null
+  adReviewScore: number | null
+  adReviewFeedback: AdReviewFlag[] | null
+  adReviewedAt: string | null
   title: string | null
   metaTitle: string | null
   metaDescription: string | null
@@ -106,6 +113,10 @@ export default function ContentViewDrawer({
   const [humanizeError, setHumanizeError] = useState('')
   const [pushingToMeta, setPushingToMeta] = useState(false)
   const [pushToMetaError, setPushToMetaError] = useState('')
+  const [pushingToGoogle, setPushingToGoogle] = useState(false)
+  const [pushToGoogleError, setPushToGoogleError] = useState('')
+  const [reviewingAd, setReviewingAd] = useState(false)
+  const [reviewAdError, setReviewAdError] = useState('')
   const [schemaCopied, setSchemaCopied] = useState(false)
   const [noteText, setNoteText]   = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
@@ -257,6 +268,42 @@ export default function ContentViewDrawer({
     }
   }
 
+  async function handlePushToGoogle() {
+    setPushToGoogleError('')
+    setPushingToGoogle(true)
+    try {
+      const res = await fetch(`/api/content/${contentId}/push-to-google`, { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        setPushToGoogleError(body?.error ?? 'Push to Google Ads failed. Please try again.')
+        return
+      }
+      await fetchData()
+    } catch {
+      setPushToGoogleError('Request failed.')
+    } finally {
+      setPushingToGoogle(false)
+    }
+  }
+
+  async function handleReviewAd() {
+    setReviewAdError('')
+    setReviewingAd(true)
+    try {
+      const res = await fetch(`/api/content/${contentId}/review-ad`, { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        setReviewAdError(body?.error ?? 'AI Ad Review failed. Please try again.')
+        return
+      }
+      await fetchData()
+    } catch {
+      setReviewAdError('Request failed.')
+    } finally {
+      setReviewingAd(false)
+    }
+  }
+
   // Show header badges from live fetched data if available, else from props
   const displayStatus = data?.status ?? status
   const displayMediaStatus = data?.mediaStatus ?? mediaStatus
@@ -366,6 +413,10 @@ export default function ContentViewDrawer({
                     <FieldList label="Display Paths" values={data.adPaths} charLimit={GOOGLE_HARD_LIMITS.path} />
                   )}
                   {data.businessName && <Field label="Business Name" value={data.businessName} charLimit={GOOGLE_HARD_LIMITS.businessName} />}
+
+                  {data.contentType === 'AD_COPY' && data.adReviewScore !== null && (
+                    <AdReviewCard score={data.adReviewScore} feedback={data.adReviewFeedback ?? []} reviewedAt={data.adReviewedAt} />
+                  )}
 
                   {data.originalityScore !== null && (
                     <OriginalityBadge score={data.originalityScore} notes={data.originalityNotes} humanizedAt={data.humanizedAt} />
@@ -573,6 +624,22 @@ export default function ContentViewDrawer({
                     {humanizeError && <p className="text-xs text-red-500">{humanizeError}</p>}
                   </div>
                 )}
+                {data.contentType === 'AD_COPY' && (
+                  <div className="pt-1 border-t border-gray-200 space-y-2">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">AI Ad Review</p>
+                    <button
+                      onClick={handleReviewAd}
+                      disabled={reviewingAd}
+                      className="w-full px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+                    >
+                      {reviewingAd ? 'Reviewing...' : data.adReviewScore !== null ? '↺ Review Again' : '✦ Review Ad Quality'}
+                    </button>
+                    <p className="text-xs text-gray-400">
+                      AI critiques the copy above for persuasive strength (distinct angles, CTA, clarity) — never rewrites it. Read the feedback, then hand-edit or use &quot;Regenerate with Direction&quot; above to apply it.
+                    </p>
+                    {reviewAdError && <p className="text-xs text-red-500">{reviewAdError}</p>}
+                  </div>
+                )}
                 {data.contentType === 'AD_COPY' && data.platform === 'Meta Ads' && data.status === 'APPROVED' && (
                   <div className="pt-1 border-t border-gray-200 space-y-2">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Meta Ads Manager</p>
@@ -593,6 +660,29 @@ export default function ContentViewDrawer({
                     )}
                     {(pushToMetaError || data.metaPushError) && (
                       <p className="text-xs text-red-500">{pushToMetaError || data.metaPushError}</p>
+                    )}
+                  </div>
+                )}
+                {data.contentType === 'AD_COPY' && data.platform === 'Google Ads' && data.status === 'APPROVED' && (
+                  <div className="pt-1 border-t border-gray-200 space-y-2">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Google Ads</p>
+                    <button
+                      onClick={handlePushToGoogle}
+                      disabled={pushingToGoogle}
+                      className="w-full px-4 py-2 text-sm bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white rounded-lg transition-colors"
+                    >
+                      {pushingToGoogle ? 'Pushing...' : data.googleAdGroupAdResourceName ? '↺ Push Again (creates a new draft)' : '→ Push to Google Ads'}
+                    </button>
+                    <p className="text-xs text-gray-400">
+                      Creates a brand-new, fully PAUSED Campaign + Ad Group + Ad in the NEDS Ads account (Google has no standalone-creative object like Meta) — a placeholder budget and bid, no targeting set. Review and configure it before activating anything yourself in Google Ads.
+                    </p>
+                    {data.googleAdGroupAdResourceName && (
+                      <p className="text-xs text-green-600">
+                        ✓ Pushed{data.googlePushedAt ? ` ${new Date(data.googlePushedAt).toLocaleString()}` : ''} as a paused draft — check the Google Ads account for the &quot;⚠️ DRAFT&quot; campaign.
+                      </p>
+                    )}
+                    {(pushToGoogleError || data.googlePushError) && (
+                      <p className="text-xs text-red-500">{pushToGoogleError || data.googlePushError}</p>
                     )}
                   </div>
                 )}
@@ -694,6 +784,46 @@ function OriginalityBadge({ score, notes, humanizedAt }: { score: number; notes:
         </div>
         {notes && <p className="text-xs mt-1 whitespace-pre-line">{notes}</p>}
       </div>
+    </div>
+  )
+}
+
+// AI Ad Review — persuasive/strategic critique only (lib/ad-review.ts), never
+// auto-applied. Separate from PolicyFlags below, which is deterministic
+// character-limit/policy compliance, not quality.
+function AdReviewCard({ score, feedback, reviewedAt }: { score: number; feedback: AdReviewFlag[]; reviewedAt: string | null }) {
+  const color = score >= 85 ? 'bg-green-50 text-green-700 border-green-200'
+    : score >= 60 ? 'bg-amber-50 text-amber-700 border-amber-200'
+    : 'bg-red-50 text-red-700 border-red-200'
+  const strengths = feedback.filter(f => f.severity === 'strength')
+  const suggestions = feedback.filter(f => f.severity === 'suggestion')
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">AI Ad Review</p>
+      <div className={`rounded-lg border px-3 py-2 ${color}`}>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold">Score: {score}/100</span>
+          {reviewedAt && <span className="text-xs opacity-75">{new Date(reviewedAt).toLocaleString()}</span>}
+        </div>
+      </div>
+      {suggestions.length > 0 && (
+        <div className="mt-1.5 space-y-1">
+          {suggestions.map((f, i) => (
+            <div key={`s${i}`} className="text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3 py-2">
+              <span className="font-semibold">{f.field}: </span>{f.message}
+            </div>
+          ))}
+        </div>
+      )}
+      {strengths.length > 0 && (
+        <div className="mt-1.5 space-y-1">
+          {strengths.map((f, i) => (
+            <div key={`st${i}`} className="text-xs bg-green-50 border border-green-200 text-green-700 rounded-lg px-3 py-2">
+              <span className="font-semibold">{f.field}: </span>{f.message}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
