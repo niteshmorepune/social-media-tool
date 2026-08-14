@@ -25,6 +25,13 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
+  // Public marketing homepage — Google's OAuth branding verification requires
+  // the app's homepage to explain its purpose without requiring login first.
+  // page.tsx itself still redirects an authenticated visitor onward.
+  if (pathname === '/') {
+    return NextResponse.next()
+  }
+
   // All other routes require authentication
   if (!session) {
     return NextResponse.redirect(new URL('/login', req.url))
