@@ -58,5 +58,10 @@ export default auth((req) => {
 })
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|public).*)']
+  // The `public` segment here only ever matched a literal `/public/...` URL,
+  // which Next.js never generates — files in the public/ folder are served
+  // from site root (e.g. public/logo.png -> /logo.png), so they were never
+  // actually excluded and got redirected to /login for logged-out visitors.
+  // Excluding common static file extensions instead is what actually skips them.
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|public|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)']
 }
