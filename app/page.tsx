@@ -4,6 +4,8 @@ import Link from 'next/link'
 
 export const metadata = {
   title: 'Social Media Dost — Niranjan Enterprises Digital Solutions',
+  description:
+    'Social Media Dost is Niranjan Enterprises Digital Solutions’ internal content-production platform, used to plan, generate, review, and approve social media posts, ad copy, and marketing content on behalf of our clients.',
 }
 
 export default async function RootPage() {
@@ -31,8 +33,10 @@ export default async function RootPage() {
       <main className="flex-1 max-w-3xl mx-auto px-4 py-16 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/neds-logo.png" alt="Niranjan Enterprises Digital Solutions" className="h-28 w-auto mx-auto mb-6" />
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Social Media Dost</h1>
-        <p className="text-gray-500 mt-2">Operated by Niranjan Enterprises Digital Solutions (NEDS)</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
+          Social Media Dost — Niranjan Enterprises Digital Solutions
+        </h1>
+        <p className="text-gray-500 mt-2">NEDS&apos;s internal content-production platform</p>
         <p className="text-gray-700 text-lg leading-relaxed mt-6">
           Social Media Dost is NEDS&apos;s internal content-production platform — used by our
           team to plan, generate, review, and approve social media posts, ad copy, and marketing
