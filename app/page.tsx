@@ -51,6 +51,21 @@ export default async function RootPage() {
             Sign in to your account
           </Link>
         </div>
+
+        <div className="mt-12 pt-10 border-t border-gray-200 text-left">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            About Niranjan Enterprises Digital Solutions
+          </h2>
+          <p className="text-gray-600 leading-relaxed">
+            Niranjan Enterprises Digital Solutions (NEDS) is a digital solutions agency based in
+            Pune, Maharashtra, India. We help businesses grow online through SEO, Google Business
+            Profile management, website design &amp; development, social media management,
+            performance marketing, software development, and AI automation — plus ongoing AMC and
+            support for existing clients. Social Media Dost is the internal platform our team uses
+            to plan, produce, and manage the social media and advertising content we create for
+            our clients.
+          </p>
+        </div>
       </main>
 
       <footer className="border-t border-gray-200">
