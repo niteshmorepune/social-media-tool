@@ -19,8 +19,10 @@ export default async function RootPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="border-b border-gray-200 bg-white">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/neds-logo-horizontal.png" alt="Niranjan Enterprises Digital Solutions" className="h-8 w-auto" />
+          <a href="https://niranjanenterprises.com" target="_blank" rel="noopener noreferrer">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/neds-logo-horizontal.png" alt="Niranjan Enterprises Digital Solutions" className="h-8 w-auto" />
+          </a>
           <Link
             href="/login"
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -31,17 +33,29 @@ export default async function RootPage() {
       </header>
 
       <main className="flex-1 max-w-3xl mx-auto px-4 py-16 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/neds-logo.png" alt="Niranjan Enterprises Digital Solutions" className="h-28 w-auto mx-auto mb-6" />
+        <a href="https://niranjanenterprises.com" target="_blank" rel="noopener noreferrer">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/neds-logo.png" alt="Niranjan Enterprises Digital Solutions" className="h-28 w-auto mx-auto mb-6" />
+        </a>
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
           Social Media Dost — Niranjan Enterprises Digital Solutions
         </h1>
-        <p className="text-gray-500 mt-2">NEDS&apos;s internal content-production platform</p>
+        <p className="text-gray-500 mt-2">
+          An internal content-production platform by{' '}
+          <a
+            href="https://niranjanenterprises.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-gray-700"
+          >
+            Niranjan Enterprises Digital Solutions
+          </a>
+        </p>
         <p className="text-gray-700 text-lg leading-relaxed mt-6">
-          Social Media Dost is NEDS&apos;s internal content-production platform — used by our
-          team to plan, generate, review, and approve social media posts, ad copy, and marketing
-          content on behalf of our clients, and by client contacts to review and approve that
-          content through a dedicated client portal.
+          Social Media Dost is Niranjan Enterprises Digital Solutions&apos; internal
+          content-production platform — used by our team to plan, generate, review, and approve
+          social media posts, ad copy, and marketing content on behalf of our clients, and by
+          client contacts to review and approve that content through a dedicated client portal.
         </p>
         <div className="mt-8">
           <Link
@@ -54,11 +68,19 @@ export default async function RootPage() {
 
         <div className="mt-12 pt-10 border-t border-gray-200 text-left">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">
-            About Niranjan Enterprises Digital Solutions
+            About{' '}
+            <a
+              href="https://niranjanenterprises.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-gray-700"
+            >
+              Niranjan Enterprises Digital Solutions
+            </a>
           </h2>
           <p className="text-gray-600 leading-relaxed">
-            Niranjan Enterprises Digital Solutions (NEDS) is a digital solutions agency based in
-            Pune, Maharashtra, India. We help businesses grow online through SEO, Google Business
+            Niranjan Enterprises Digital Solutions is a digital solutions agency based in Pune,
+            Maharashtra, India. We help businesses grow online through SEO, Google Business
             Profile management, website design &amp; development, social media management,
             performance marketing, software development, and AI automation — plus ongoing AMC and
             support for existing clients. Social Media Dost is the internal platform our team uses
@@ -70,7 +92,12 @@ export default async function RootPage() {
 
       <footer className="border-t border-gray-200">
         <div className="max-w-5xl mx-auto px-4 py-6 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
-          <span>&copy; {new Date().getFullYear()} Niranjan Enterprises Digital Solutions</span>
+          <span>
+            &copy; {new Date().getFullYear()}{' '}
+            <a href="https://niranjanenterprises.com" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600">
+              Niranjan Enterprises Digital Solutions
+            </a>
+          </span>
           <div className="flex gap-4">
             <Link href="/privacy-policy" className="hover:text-gray-600">Privacy Policy</Link>
             <Link href="/terms-of-service" className="hover:text-gray-600">Terms of Service</Link>
