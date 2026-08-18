@@ -122,7 +122,7 @@ export default function HelpPage() {
 
           <div className="border-t border-gray-100 pt-4">
             <p className="font-medium text-gray-900 mb-2">Ad Copy — Meta Ads &amp; Google Ads</p>
-            <p className="text-gray-600 mb-3"><strong>Meta Ads</strong> and <strong>Google Ads</strong> are separate platform entries lower down the platform list — they only offer the <strong>Ad Copy</strong> toggle, since paid-ad text has no image/video/carousel format. This tool only generates the copy text; nothing is submitted to Meta Ads Manager or Google Ads automatically — the team copy-pastes the result in themselves.</p>
+            <p className="text-gray-600 mb-3"><strong>Meta Ads</strong> and <strong>Google Ads</strong> are separate platform entries lower down the platform list — they only offer the <strong>Ad Copy</strong> toggle, since paid-ad text has no image/video/carousel format.</p>
             <Step n={1} text='Toggle "Ad Copy" under Meta Ads and/or Google Ads. Each one you select adds a Landing Page URL field to the selected-platforms list below — enter the page the ad should point to.' />
             <Step n={2} text='Set "Ad variants" (the same − / + control used for post counts elsewhere). For Meta, each variant is one complete ad (primary text, headline, description, call-to-action). For Google, each variant is one complete Responsive Search Ad — a pool of headlines and descriptions Google itself mixes and matches, not separate ads.' />
             <Step n={3} text="Generate as usual. Open a generated ad with View → to review it." />
@@ -139,6 +139,19 @@ export default function HelpPage() {
               <p className="font-medium text-gray-800 mb-1">A/B testing angles</p>
               <p className="text-gray-600 mb-2">When you set more than one ad variant, each one is now written to test a specific, labeled psychological angle — shown as a coloured badge at the top of the ad (e.g. <em>Urgency / Scarcity</em>, <em>Social Proof</em>). The angles rotate automatically: Direct Offer, Urgency/Scarcity, Social Proof, Curiosity Gap, Benefit-Led, Problem-Agitate-Solve. This turns &ldquo;3 variants&rdquo; into a real, labeled A/B test set instead of just differently-worded copy — you can track which angle actually performs best once the ads are live.</p>
               <Note text="Urgency/Scarcity never invents a fake deadline, and Social Proof never invents a specific stat or client count — both angles are written from only what the brief actually supports." />
+            </div>
+            <div className="mt-3">
+              <p className="font-medium text-gray-800 mb-1">AI Ad Review</p>
+              <p className="text-gray-600 mb-2">Inside the View → drawer for any ad, click <strong>✦ Review Ad Quality</strong> to have AI critique the copy above for persuasive strength — distinct angles, a clear call-to-action, clarity. It never rewrites the copy itself; read the feedback, then hand-edit or use &quot;Regenerate with Direction&quot; above to apply it.</p>
+            </div>
+            <div className="mt-3">
+              <p className="font-medium text-gray-800 mb-1">Pushing to Meta Ads Manager / Google Ads — NEDS house account only</p>
+              <p className="text-gray-600 mb-2">Once an ad is <strong>Approved</strong>, a platform-specific push button appears at the bottom of the View → drawer. Both are scoped to NEDS&apos;s own house ad account only — client accounts aren&apos;t supported yet.</p>
+              <div className="space-y-2">
+                <StatusRow label="→ Push to Meta Ads Manager" color="bg-blue-100 text-blue-700" desc="Creates a Creative asset (text only) in the NEDS ad account's library — no campaign, budget, or targeting is created or changed. Build and launch the actual campaign yourself in Ads Manager, picking this creative instead of retyping the copy." />
+                <StatusRow label="→ Push to Google Ads" color="bg-blue-100 text-blue-700" desc="Creates a brand-new, fully PAUSED Campaign + Ad Group + Ad in the NEDS Ads account (Google has no standalone-creative object like Meta) — a placeholder budget/bid and no targeting, and the campaign name is prefixed &quot;⚠️ DRAFT – DO NOT ACTIVATE&quot;. Review and configure everything yourself in Google Ads before ever unpausing it." />
+              </div>
+              <Note text="A second click on either button is labelled 'Push Again' and creates another new object — it does not update the one already pushed. Both buttons are only visible once the ad is Approved, and only for the two named platforms." />
             </div>
           </div>
 
