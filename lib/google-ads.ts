@@ -164,6 +164,11 @@ export async function pushContentToGoogleAds(contentId: string): Promise<{ adGro
           advertisingChannelType: 'SEARCH',
           campaignBudget: budgetTemp,
           manualCpc: {},
+          // Required as of 2026-09-03 (EU political-advertising transparency
+          // rule) — CampaignService rejects any create with FieldError.REQUIRED
+          // if this is omitted, even for a fully-paused draft with no EU
+          // targeting. NEDS ad copy is never political; declare accordingly.
+          containsEuPoliticalAdvertising: 'DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING',
           networkSettings: {
             targetGoogleSearch: true,
             targetSearchNetwork: false,
