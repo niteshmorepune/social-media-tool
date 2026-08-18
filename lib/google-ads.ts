@@ -225,7 +225,23 @@ export async function pushContentToGoogleAds(contentId: string): Promise<{ adGro
 
   const body = await res.json().catch(() => null)
   if (!res.ok) {
-    const googleMessage = body?.error?.message || `HTTP ${res.status}`
+    // The top-level error.message (e.g. "Request contains an invalid
+    // argument.") is near-useless on its own — Google Ads API nests the
+    // actual field-level reason under error.details[].errors[]. Log the raw
+    // body (no PII, just campaign-structure validation errors) so a failure
+    // is diagnosable from `docker compose logs app` instead of a guessing
+    // game, and surface the specific error(s) in the thrown message too.
+    console.error('Google Ads mutate rejected:', JSON.stringify(body, null, 2))
+    const detailErrors = body?.error?.details?.flatMap((d: { errors?: Array<{ message?: string; errorCode?: unknown; location?: { fieldPathElements?: Array<{ fieldName?: string }> } }> }) => d.errors ?? []) ?? []
+    const specific = detailErrors
+      .map(e => {
+        const field = e.location?.fieldPathElements?.map(f => f.fieldName).join('.')
+        const code = e.errorCode ? JSON.stringify(e.errorCode) : undefined
+        return [e.message, field && `(field: ${field})`, code && `[${code}]`].filter(Boolean).join(' ')
+      })
+      .filter(Boolean)
+      .join(' | ')
+    const googleMessage = specific || body?.error?.message || `HTTP ${res.status}`
     throw new GoogleAdsPushError(`Google rejected the request: ${googleMessage}`)
   }
 
