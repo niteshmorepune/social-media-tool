@@ -47,9 +47,12 @@ const DEVELOPER_TOKEN = process.env.GOOGLE_ADS_DEVELOPER_TOKEN
 const LOGIN_CUSTOMER_ID = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID // the Manager (MCC) account, digits only
 const CUSTOMER_ID = process.env.GOOGLE_ADS_CUSTOMER_ID // the house Ads account objects are created under, digits only
 const HOUSE_CLIENT_ID = process.env.GOOGLE_ADS_HOUSE_CLIENT_ID // Client.id for NEDS's own house account
-// Verify against Google's current stable version before first real use —
-// API versions retire on a schedule (same caution as Meta's graph version pin).
-const API_VERSION = process.env.GOOGLE_ADS_API_VERSION || 'v17'
+// v17 (the original placeholder here) was already sunset by the time this was
+// first live-tested (2026-08-18, HTTP 404 on googleAds:mutate) — confirmed
+// v25 is Google's current stable version at that date. API versions retire on
+// a schedule (same caution as Meta's graph version pin) — re-verify this
+// default periodically rather than assuming it stays correct indefinitely.
+const API_VERSION = process.env.GOOGLE_ADS_API_VERSION || 'v25'
 
 // Hardcoded placeholders, deliberately never derived from request input (see
 // guardrail #2 above). Verify these actually clear Google's real minimums
