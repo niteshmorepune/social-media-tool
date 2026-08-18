@@ -232,9 +232,12 @@ export async function pushContentToGoogleAds(contentId: string): Promise<{ adGro
     // is diagnosable from `docker compose logs app` instead of a guessing
     // game, and surface the specific error(s) in the thrown message too.
     console.error('Google Ads mutate rejected:', JSON.stringify(body, null, 2))
-    const detailErrors = body?.error?.details?.flatMap((d: { errors?: Array<{ message?: string; errorCode?: unknown; location?: { fieldPathElements?: Array<{ fieldName?: string }> } }> }) => d.errors ?? []) ?? []
+    type GoogleAdsFieldError = { message?: string; errorCode?: unknown; location?: { fieldPathElements?: Array<{ fieldName?: string }> } }
+    type GoogleAdsErrorDetail = { errors?: GoogleAdsFieldError[] }
+    const details = (body?.error?.details ?? []) as GoogleAdsErrorDetail[]
+    const detailErrors: GoogleAdsFieldError[] = details.flatMap(d => d.errors ?? [])
     const specific = detailErrors
-      .map(e => {
+      .map((e: GoogleAdsFieldError) => {
         const field = e.location?.fieldPathElements?.map(f => f.fieldName).join('.')
         const code = e.errorCode ? JSON.stringify(e.errorCode) : undefined
         return [e.message, field && `(field: ${field})`, code && `[${code}]`].filter(Boolean).join(' ')
