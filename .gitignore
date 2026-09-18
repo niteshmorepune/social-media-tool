@@ -32,6 +32,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the checked-in template documenting every required var --
+# this was unintentionally caught by the blanket rule above (found
+# 2026-09-18: it was never actually in git despite being the only
+# documentation of this app's env vars, so a fresh clone had nothing).
+!.env.local.example
 
 # vercel
 .vercel
