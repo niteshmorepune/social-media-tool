@@ -51,7 +51,7 @@ export async function GET(req: Request) {
       return `"${v}"`
     }
 
-    const rows = content.map(c => [
+    const rows = content.map((c: (typeof content)[number]) => [
       escCsv(c.brief.client.name),
       escCsv(c.brief.title),
       c.platform,

@@ -71,7 +71,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     : (await prisma.user.findMany({
         where: { role: 'ADMIN' },
         select: { id: true },
-      })).map(u => u.id)
+      })).map((u: { id: string }) => u.id)
 
   if (notifyUserIds.length > 0) {
     const notifTitle = action === 'APPROVE'
