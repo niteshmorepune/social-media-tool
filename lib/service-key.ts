@@ -20,10 +20,15 @@ import crypto from 'crypto'
  * Scoped per PURPOSE, not one universal key for all 4 routes — a leaked key
  * should only grant what that one purpose needs. 'provisioning' (clients,
  * team) is exactly the scope the earlier role-escalation incident abused, so
- * it's kept separate from 'briefs' and 'read'. The legacy unscoped
- * SMDOST_SERVICE_KEY is still accepted as a fallback on every route during
- * rollout — remove it once the CRM is confirmed sending the new scoped keys
- * (see the CRM's backlog memory for the checklist).
+ * it's kept separate from 'briefs' and 'read'.
+ *
+ * The legacy unscoped SMDOST_SERVICE_KEY fallback for THIS (inbound) check
+ * has been retired — the CRM is confirmed sending its new scoped keys,
+ * verified via a real live call, not just deployed code.
+ * SMDOST_SERVICE_KEY ITSELF stays exactly as it was, though — do not unset
+ * it: lib/crm-webhook.ts still uses it, unchanged, as the real Bearer token
+ * this app sends OUTBOUND to the CRM's own webhooks, a separate trust
+ * boundary this file's own inbound scoping never touched.
  */
 
 export type ServiceKeyScope = 'provisioning' | 'briefs' | 'read'
@@ -43,18 +48,10 @@ export function isServiceKeyRequest(req: Request, routeLabel: string, scope: Ser
   if (!provided) return false
 
   const scoped = process.env[SCOPE_ENV_VAR[scope]]
-  const legacy = process.env.SMDOST_SERVICE_KEY
 
-  const matchedScoped = !!scoped && timingSafeStringsEqual(provided, scoped)
-  const matchedLegacy = !matchedScoped && !!legacy && timingSafeStringsEqual(provided, legacy)
-
-  if (!matchedScoped && !matchedLegacy) {
+  if (!scoped || !timingSafeStringsEqual(provided, scoped)) {
     console.warn(`[service-key] invalid key presented for ${routeLabel}`)
     return false
-  }
-
-  if (matchedLegacy) {
-    console.warn(`[service-key] ${routeLabel} authenticated via LEGACY unscoped key — rotate this caller to the '${scope}' scoped key`)
   }
 
   if (!withinRateLimit(routeLabel)) {
