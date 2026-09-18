@@ -25,7 +25,7 @@ export async function GET() {
 export async function POST(req: Request) {
   // Allow server-to-server calls from NEDS CRM (monthly brief auto-creation).
   // The key must match SMDOST_SERVICE_KEY in the CRM and here.
-  const isServiceCall = isServiceKeyRequest(req, 'POST /api/briefs')
+  const isServiceCall = isServiceKeyRequest(req, 'POST /api/briefs', 'briefs')
 
   let createdById: string
 

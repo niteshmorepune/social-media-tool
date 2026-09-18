@@ -23,7 +23,7 @@ export async function GET() {
 export async function POST(req: Request) {
   // Allow server-to-server calls from the NEDS CRM (deal won → provision client).
   // The key must match SMDOST_SERVICE_KEY in the CRM and SMDOST_SERVICE_KEY here.
-  const isServiceCall = isServiceKeyRequest(req, 'POST /api/clients')
+  const isServiceCall = isServiceKeyRequest(req, 'POST /api/clients', 'provisioning')
 
   if (!isServiceCall) {
     const session = await auth()

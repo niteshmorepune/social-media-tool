@@ -16,21 +16,45 @@ import crypto from 'crypto'
  * Redis — so a plain in-process window is sufficient; the limiter is keyed
  * by route label, not by caller, since every legitimate caller is the same
  * one CRM), and a log line on every attempt (success and failure).
+ *
+ * Scoped per PURPOSE, not one universal key for all 4 routes — a leaked key
+ * should only grant what that one purpose needs. 'provisioning' (clients,
+ * team) is exactly the scope the earlier role-escalation incident abused, so
+ * it's kept separate from 'briefs' and 'read'. The legacy unscoped
+ * SMDOST_SERVICE_KEY is still accepted as a fallback on every route during
+ * rollout — remove it once the CRM is confirmed sending the new scoped keys
+ * (see the CRM's backlog memory for the checklist).
  */
+
+export type ServiceKeyScope = 'provisioning' | 'briefs' | 'read'
+
+const SCOPE_ENV_VAR: Record<ServiceKeyScope, string> = {
+  provisioning: 'SMDOST_SERVICE_KEY_PROVISIONING',
+  briefs: 'SMDOST_SERVICE_KEY_BRIEFS',
+  read: 'SMDOST_SERVICE_KEY_READ',
+}
 
 const WINDOW_MS = 60 * 1000
 const MAX_REQUESTS_PER_WINDOW = 30
 const recentHits = new Map<string, number[]>()
 
-export function isServiceKeyRequest(req: Request, routeLabel: string): boolean {
+export function isServiceKeyRequest(req: Request, routeLabel: string, scope: ServiceKeyScope): boolean {
   const provided = req.headers.get('x-service-key')
-  const expected = process.env.SMDOST_SERVICE_KEY
+  if (!provided) return false
 
-  if (!provided || !expected) return false
+  const scoped = process.env[SCOPE_ENV_VAR[scope]]
+  const legacy = process.env.SMDOST_SERVICE_KEY
 
-  if (!timingSafeStringsEqual(provided, expected)) {
+  const matchedScoped = !!scoped && timingSafeStringsEqual(provided, scoped)
+  const matchedLegacy = !matchedScoped && !!legacy && timingSafeStringsEqual(provided, legacy)
+
+  if (!matchedScoped && !matchedLegacy) {
     console.warn(`[service-key] invalid key presented for ${routeLabel}`)
     return false
+  }
+
+  if (matchedLegacy) {
+    console.warn(`[service-key] ${routeLabel} authenticated via LEGACY unscoped key — rotate this caller to the '${scope}' scoped key`)
   }
 
   if (!withinRateLimit(routeLabel)) {

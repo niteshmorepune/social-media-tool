@@ -9,7 +9,7 @@ import { isServiceKeyRequest } from '@/lib/service-key'
 // Session-auth also works for a future in-app usage view, but nothing in the
 // UI calls this yet.
 export async function GET(req: Request) {
-  const isServiceCall = isServiceKeyRequest(req, 'GET /api/ai/usage')
+  const isServiceCall = isServiceKeyRequest(req, 'GET /api/ai/usage', 'read')
 
   if (!isServiceCall) {
     const session = await auth()

@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   // CLIENT portal login for the client's primary contact, mirroring how the
   // CRM already provisions a Drishti CLIENT user). Same shared-secret pattern
   // as POST /api/clients.
-  const isServiceCall = isServiceKeyRequest(req, 'POST /api/team')
+  const isServiceCall = isServiceKeyRequest(req, 'POST /api/team', 'provisioning')
 
   if (!isServiceCall) {
     const session = await auth()
