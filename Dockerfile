@@ -7,12 +7,15 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Use the committed lockfile (npm ci) rather than re-resolving dependencies
-# fresh on every build — a floating install meant every deploy could pick up
-# a different, untested version of anything and break on completely
-# unrelated code (confirmed 2026-09-18: 3 separate builds each failed on a
-# different file purely from dependency drift between deploys).
-RUN npm ci --legacy-peer-deps
+# `npm ci` against a lockfile committed from a non-Linux dev machine does NOT
+# reliably resolve Linux/musl-specific optional native binaries (confirmed
+# 2026-09-18 — lightningcss's linux-x64-musl.node was missing under `npm ci`,
+# even though the exact same lockfile's `npm install` locally on Windows
+# works fine). A fresh, platform-aware `npm install` run directly inside this
+# container correctly detects its own OS/libc and pulls the right binaries —
+# this is very likely why the Dockerfile originally deleted the lockfile at
+# all, before this comment existed to say so explicitly.
+RUN rm -f package-lock.json && npm install --legacy-peer-deps
 
 COPY . .
 
