@@ -31,7 +31,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       scheduledMonth:     nextMonth,
       createdById:        session.user.id,
       platforms: {
-        create: original.platforms.map(p => ({
+        create: original.platforms.map((p: (typeof original.platforms)[number]) => ({
           platform:       p.platform,
           contentType:    p.contentType,
           postsCount:     p.postsCount,
