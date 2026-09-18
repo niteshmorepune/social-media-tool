@@ -33,6 +33,15 @@ services:
       # would silently go dead with no obvious error.
       - CRM_WEBHOOK_URL=${CRM_WEBHOOK_URL}
       - SMDOST_SERVICE_KEY=${SMDOST_SERVICE_KEY}
+      # Scoped inbound keys (2026-09-18 key-scoping follow-up) — see
+      # lib/service-key.ts. Same "must be listed here or Compose never
+      # passes it through" gotcha as every var above; SMDOST_SERVICE_KEY
+      # itself stays listed both as the rollout fallback AND as the real,
+      # unchanged Bearer token this app sends OUTBOUND to the CRM's own
+      # webhooks (lib/crm-webhook.ts) — do not remove it.
+      - SMDOST_SERVICE_KEY_PROVISIONING=${SMDOST_SERVICE_KEY_PROVISIONING}
+      - SMDOST_SERVICE_KEY_BRIEFS=${SMDOST_SERVICE_KEY_BRIEFS}
+      - SMDOST_SERVICE_KEY_READ=${SMDOST_SERVICE_KEY_READ}
       - DRISHTI_API_URL=${DRISHTI_API_URL}
       - DRISHTI_SERVICE_KEY=${DRISHTI_SERVICE_KEY}
       # Meta Ads / Google Ads push integrations (see .env.local.example)
