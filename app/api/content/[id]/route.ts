@@ -9,8 +9,19 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const content = await prisma.content.findUnique({
-    where: { id },
+  const content = await prisma.content.findFirst({
+    where: {
+      id,
+      // A CLIENT-role caller may only ever read their own client's content —
+      // mirrors the ownership check PATCH /api/portal/content/[id] already
+      // enforces. Internal team roles (everyone else) stay unrestricted,
+      // same as this route's own PATCH/DELETE handlers below. Without this,
+      // any logged-in CLIENT user could read any OTHER client's unpublished
+      // content by guessing/incrementing an id.
+      ...(session.user.role === 'CLIENT'
+        ? { brief: { client: { users: { some: { id: session.user.id } } } } }
+        : {}),
+    },
     include: {
       revisions: { include: { requestedBy: { select: { name: true, role: true } } }, orderBy: { createdAt: 'asc' } },
       // Needed client-side to build Schema.org JSON-LD (SEO meta-pack) for
