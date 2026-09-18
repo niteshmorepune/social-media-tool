@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { isServiceKeyRequest } from '@/lib/service-key'
 
 export async function GET() {
   const session = await auth()
@@ -23,8 +24,7 @@ export async function POST(req: Request) {
   // CLIENT portal login for the client's primary contact, mirroring how the
   // CRM already provisions a Drishti CLIENT user). Same shared-secret pattern
   // as POST /api/clients.
-  const serviceKey = req.headers.get('x-service-key')
-  const isServiceCall = serviceKey && serviceKey === process.env.SMDOST_SERVICE_KEY
+  const isServiceCall = isServiceKeyRequest(req, 'POST /api/team')
 
   if (!isServiceCall) {
     const session = await auth()
@@ -39,6 +39,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  // A service-key caller may only ever create a CLIENT-role user tied to a
+  // real clientId — never ADMIN/TEAM. The CRM's own ProvisionClientExternallyJob
+  // always sends role: 'CLIENT' + clientId; without this check, the request
+  // body's own `role` field was previously trusted as-is, letting a leaked
+  // key mint a full ADMIN login (see lib/service-key.ts's own docblock for
+  // why this matters — this was a real, exploitable backdoor).
+  if (isServiceCall && (role !== 'CLIENT' || !clientId)) {
+    return NextResponse.json(
+      { error: 'Service calls may only create a CLIENT user with a clientId' },
+      { status: 400 }
+    )
+  }
+
   // CLIENT role creation is allowed from the client edit page (non-ADMIN team members can't create users)
   // but we still require a valid session with at least TEAM role
   const existing = await prisma.user.findUnique({ where: { email } })
@@ -48,7 +61,15 @@ export async function POST(req: Request) {
 
   const hashed = await bcrypt.hash(password, 12)
   const user = await prisma.user.create({
-    data: { name, email, password: hashed, role: role ?? 'TEAM', clientId: clientId ?? null },
+    data: {
+      name,
+      email,
+      password: hashed,
+      // Belt-and-suspenders alongside the check above: a service call's role
+      // is hardcoded here too, never taken from the request body directly.
+      role: isServiceCall ? 'CLIENT' : (role ?? 'TEAM'),
+      clientId: clientId ?? null
+    },
     select: { id: true, name: true, email: true, role: true, createdAt: true }
   })
 

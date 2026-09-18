@@ -1,6 +1,7 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { isServiceKeyRequest } from '@/lib/service-key'
 
 export async function GET() {
   const session = await auth()
@@ -24,8 +25,7 @@ export async function GET() {
 export async function POST(req: Request) {
   // Allow server-to-server calls from NEDS CRM (monthly brief auto-creation).
   // The key must match SMDOST_SERVICE_KEY in the CRM and here.
-  const serviceKey = req.headers.get('x-service-key')
-  const isServiceCall = serviceKey && serviceKey === process.env.SMDOST_SERVICE_KEY
+  const isServiceCall = isServiceKeyRequest(req, 'POST /api/briefs')
 
   let createdById: string
 

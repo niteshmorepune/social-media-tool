@@ -1,6 +1,7 @@
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { isServiceKeyRequest } from '@/lib/service-key'
 
 // AI usage/cost totals for a date range — used by the NEDS CRM's AI Usage
 // Report (server-to-server, X-Service-Key) to fold SMDost's own Claude spend
@@ -8,8 +9,7 @@ import { NextResponse } from 'next/server'
 // Session-auth also works for a future in-app usage view, but nothing in the
 // UI calls this yet.
 export async function GET(req: Request) {
-  const serviceKey = req.headers.get('x-service-key')
-  const isServiceCall = Boolean(serviceKey) && serviceKey === process.env.SMDOST_SERVICE_KEY
+  const isServiceCall = isServiceKeyRequest(req, 'GET /api/ai/usage')
 
   if (!isServiceCall) {
     const session = await auth()
